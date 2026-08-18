@@ -90,39 +90,6 @@ function usePageEntrance(ref, pageKey) {
   }, [pageKey, ref]);
 }
 
-function useMicroInteractions(ref) {
-  useLayoutEffect(() => {
-    const root = ref.current;
-    if (!root || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
-    const selector = '[data-motion-control]';
-    const targetFor = (event) => {
-      const target = event.target instanceof Element ? event.target.closest(selector) : null;
-      return target && root.contains(target) ? target : null;
-    };
-    const enter = (event) => {
-      const target = targetFor(event);
-      if (!target || (event.relatedTarget instanceof Node && target.contains(event.relatedTarget))) return;
-      gsap.to(target, { y: -1, duration: 0.14, ease: 'power1.out', overwrite: 'auto' });
-    };
-    const leave = (event) => {
-      const target = targetFor(event);
-      if (!target || (event.relatedTarget instanceof Node && target.contains(event.relatedTarget))) return;
-      gsap.to(target, { y: 0, duration: 0.16, ease: 'power1.out', overwrite: 'auto' });
-    };
-
-    root.addEventListener('pointerover', enter);
-    root.addEventListener('pointerout', leave);
-    root.addEventListener('focusin', enter);
-    root.addEventListener('focusout', leave);
-    return () => {
-      root.removeEventListener('pointerover', enter);
-      root.removeEventListener('pointerout', leave);
-      root.removeEventListener('focusin', enter);
-      root.removeEventListener('focusout', leave);
-    };
-  }, [ref]);
-}
-
 function useMetricChartEntrance(ref, metricId) {
   useLayoutEffect(() => {
     const root = ref.current;
@@ -239,9 +206,9 @@ function ViewFrame({ id, children, className = '' }) {
 function ResearchCopy({ id, title, statement, children, action }) {
   return (
     <div className="research-copy">
-      <h1 id={`${id}-title`}>{title}</h1>
-      <p className="primary-statement">{statement}</p>
-      <div className="copy-body">{children}</div>
+      <h1 id={`${id}-title`} data-motion="heading">{title}</h1>
+      <p className="primary-statement" data-motion="text">{statement}</p>
+      <div className="copy-body" data-motion="text">{children}</div>
       {action}
     </div>
   );
@@ -328,7 +295,7 @@ function MapExperimentFigure() {
   });
 
   return (
-    <figure className="research-figure sequence-figure map-sequence" ref={ref}>
+    <figure className="research-figure sequence-figure map-sequence" data-motion="visual" ref={ref}>
       <figcaption className="sr-only">Repository files are processed programmatically into deterministic structure, which guides an agent through a precise traversal to task completion.</figcaption>
       <div className="sequence-track" aria-hidden="true">
         <section className="sequence-stage repository-stage">
@@ -380,7 +347,7 @@ function MapBenchView({ onNavigate }) {
         title="MapBench"
         statement="Do deterministic structural artifacts help agents traverse unfamiliar codebases more efficiently?"
         action={(
-          <div className="hero-actions">
+          <div className="hero-actions" data-motion="visual">
             <button className="primary-pill" onClick={() => onNavigate('benchmark')}>See how the benchmark works <span aria-hidden="true">→</span></button>
             <button className="secondary-action" onClick={() => onNavigate('experiments')}>View experiment results</button>
           </div>
@@ -480,7 +447,7 @@ function CartographFigure() {
   });
 
   return (
-    <figure className="research-figure sequence-figure cartograph-sequence" ref={ref}>
+    <figure className="research-figure sequence-figure cartograph-sequence" data-motion="visual" ref={ref}>
       <figcaption className="sr-only">Files enter Tree-sitter one at a time, form a canonical intermediate representation, then activate deterministic projections.</figcaption>
       <div className="sequence-track" aria-hidden="true">
         <section className="sequence-stage source-stage">
@@ -599,7 +566,7 @@ function BenchmarkFigure() {
   });
 
   return (
-    <figure className="research-figure benchmark-sequence" ref={ref}>
+    <figure className="research-figure benchmark-sequence" data-motion="visual" ref={ref}>
       <figcaption className="sr-only">Cartograph generates structural artifacts, five representation conditions are compared through repeated controlled runs, and tokens, runtime, cost, and navigation behavior are measured.</figcaption>
       <div className="benchmark-track" aria-hidden="true">
         <section className="benchmark-generation-stage">
@@ -838,8 +805,10 @@ function ExperimentsFigure() {
   const [metricId, setMetricId] = useState('score');
   const [hovered, setHovered] = useState(null);
   const [pinned, setPinned] = useState(() => ({ condition: ORDERED_EXPERIMENT_RESULTS[0], run: ORDERED_EXPERIMENT_RESULTS[0].runs[0] }));
+  const chartRef = useRef(null);
   const metric = EXPERIMENT_METRICS.find((item) => item.id === metricId);
   const activeObservation = hovered || pinned;
+  useMetricChartEntrance(chartRef, metricId);
   const width = 980;
   const height = 416;
   const plot = { left: 72, right: 24, top: 28, bottom: 64 };
@@ -860,7 +829,7 @@ function ExperimentsFigure() {
   };
 
   return (
-    <div className="experiment-results">
+    <div className="experiment-results" data-motion="visual" ref={chartRef}>
       <div className="experiment-toolbar">
         <div className="metric-tabs" role="group" aria-label="Experiment metric">
           {EXPERIMENT_METRICS.map((item) => (
@@ -947,8 +916,8 @@ function ExperimentsView() {
   return (
     <ViewFrame id="experiments" className="experiments-view">
       <div className="experiments-heading">
-        <h1 id="experiments-title">Experiments</h1>
-        <p>Controlled runs across repository representations.</p>
+        <h1 id="experiments-title" data-motion="heading">Experiments</h1>
+        <p data-motion="text">Controlled runs across repository representations.</p>
       </div>
       <ExperimentsFigure/>
     </ViewFrame>
@@ -961,35 +930,71 @@ function App() {
     return VIEWS.some((view) => view.id === hash) ? hash : 'mapbench';
   }, []);
   const [active, setActive] = useState(initialView);
+  const [displayed, setDisplayed] = useState(initialView);
+  const activeRef = useRef(initialView);
+  const viewportRef = useRef(null);
+  const transitionRef = useRef(null);
+  const transitionId = useRef(0);
+
+  usePageEntrance(viewportRef, displayed);
+
+  const transitionTo = (view) => {
+    const id = transitionId.current + 1;
+    transitionId.current = id;
+    transitionRef.current?.kill();
+    const outgoing = viewportRef.current?.querySelector('.view');
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reducedMotion || !outgoing) {
+      setDisplayed(view);
+      window.scrollTo({ top: 0, behavior: 'auto' });
+      return;
+    }
+
+    transitionRef.current = gsap.timeline({
+      defaults: { ease: 'power1.out', overwrite: 'auto' },
+      onComplete: () => {
+        if (transitionId.current !== id) return;
+        transitionRef.current = null;
+        setDisplayed(view);
+        window.scrollTo({ top: 0, behavior: 'auto' });
+      },
+    }).to(outgoing, { opacity: 0, y: -5, duration: 0.14 });
+  };
+
   const navigate = (view) => {
-    if (view === active) return;
+    if (view === activeRef.current) return;
+    activeRef.current = view;
     window.history.pushState(null, '', `#${view}`);
     setActive(view);
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    transitionTo(view);
   };
 
   useEffect(() => {
     if (!window.location.hash) window.history.replaceState(null, '', '#mapbench');
     const onHistory = () => {
       const next = window.location.hash.slice(1);
-      if (VIEWS.some((view) => view.id === next)) setActive(next);
+      if (!VIEWS.some((view) => view.id === next) || next === activeRef.current) return;
+      activeRef.current = next;
+      setActive(next);
+      transitionTo(next);
     };
     window.addEventListener('popstate', onHistory);
     window.addEventListener('hashchange', onHistory);
     return () => {
       window.removeEventListener('popstate', onHistory);
       window.removeEventListener('hashchange', onHistory);
+      transitionRef.current?.kill();
     };
   }, []);
 
   return (
     <div className="app-shell">
       <Header active={active} onNavigate={navigate}/>
-      <main className="view-port" key={active}>
-        {active === 'mapbench' && <MapBenchView onNavigate={navigate}/>} 
-        {active === 'cartograph' && <CartographView/>}
-        {active === 'benchmark' && <BenchmarkView/>}
-        {active === 'experiments' && <ExperimentsView/>}
+      <main className="view-port" ref={viewportRef}>
+        {displayed === 'mapbench' && <MapBenchView onNavigate={navigate}/>}
+        {displayed === 'cartograph' && <CartographView/>}
+        {displayed === 'benchmark' && <BenchmarkView/>}
+        {displayed === 'experiments' && <ExperimentsView/>}
       </main>
     </div>
   );
