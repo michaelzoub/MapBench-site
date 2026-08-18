@@ -165,15 +165,21 @@ function ResearchCopy({ id, title, statement, children, action }) {
 
 const FILES = ['runner.ts', 'workspace.ts', 'verify.ts'];
 const STRUCTURE_NODES = [
-  { id: 'entry-a', radius: 4 },
-  { id: 'entry-b', radius: 4 },
-  { id: 'core', radius: 6, className: 'core' },
-  { id: 'branch-a', radius: 4 },
-  { id: 'branch-b', radius: 4 },
+  { id: 'module', label: 'module', width: 54, height: 23 },
+  { id: 'symbol', label: 'symbol', width: 54, height: 23, className: 'core' },
+  { id: 'call', label: 'call', width: 42, height: 23 },
+  { id: 'type', label: 'type', width: 42, height: 23 },
 ];
-const STRUCTURE_EDGES = [['entry-a', 'core'], ['entry-b', 'core'], ['core', 'branch-a'], ['core', 'branch-b']];
-const NAVIGATION_NODES = ['nav-a', 'nav-b', 'nav-c', 'nav-d'].map((id) => ({ id, radius: 5 }));
-const NAVIGATION_EDGES = [['nav-a', 'nav-b'], ['nav-b', 'nav-c'], ['nav-c', 'nav-d']];
+const STRUCTURE_EDGES = [['module', 'symbol'], ['symbol', 'call'], ['symbol', 'type']];
+const NAVIGATION_NODES = [
+  { id: 'entry', label: 'entry', width: 44, height: 23 },
+  { id: 'index', label: 'index', width: 44, height: 23 },
+  { id: 'target', label: 'target', width: 48, height: 23, className: 'target' },
+  { id: 'edit', label: 'edit', width: 40, height: 23 },
+  { id: 'branch', label: 'other', width: 44, height: 23, className: 'branch' },
+];
+const NAVIGATION_EDGES = [['entry', 'index'], ['index', 'target'], ['index', 'branch'], ['target', 'edit']];
+const NAVIGATION_ROUTE = ['entry', 'index', 'target', 'edit'];
 
 function MapExperimentFigure() {
   const ref = useRef(null);
@@ -181,84 +187,102 @@ function MapExperimentFigure() {
   useCausalTimeline(ref, (root) => {
     const track = q(root, '.sequence-track');
     const rows = qa(root, '.repository-file');
+    const scans = qa(root, '.generation-scan');
+    const generator = q(root, '.generation-card');
     const structureNodes = qa(root, '.structure-node');
     const structureEdges = qa(root, '.structure-edge');
     const navNodes = qa(root, '.nav-node');
     const navEdges = qa(root, '.nav-edge');
     const sourceToken = q(root, '.source-token');
     const agentToken = q(root, '.agent-token');
-    const outcome = q(root, '.verified-card');
-    const structureCore = q(root, '.structure-node.core');
+    const outcome = q(root, '.outcome-card');
+    const generatorPort = q(root, '.generator-output');
+    const structureCore = q(root, '[data-node="module"]');
     const outcomePort = q(root, '.outcome-port');
-    const sourceStart = point(track, q(rows[2], '.stage-port'));
+    const sourceStart = point(track, generatorPort);
     const corePoint = point(track, structureCore);
-    const route = navNodes.map((node) => point(track, node));
+    const routeNodes = NAVIGATION_ROUTE.map((id) => q(root, `.nav-node[data-node="${id}"]`));
+    const routeEdges = NAVIGATION_ROUTE.slice(0, -1).map((id, index) => q(root, `.nav-edge[data-edge="${id}-${NAVIGATION_ROUTE[index + 1]}"]`));
+    const route = routeNodes.map((node) => point(track, node));
 
     gsap.set(rows, { opacity: 0.38, color: '#777777' });
-    gsap.set([...structureNodes, ...structureEdges, ...navEdges], { opacity: 0 });
-    gsap.set(navNodes, { opacity: 0.2, fill: '#cfcfcf' });
+    gsap.set(scans, { scaleX: 0, transformOrigin: 'left center' });
+    gsap.set(generator, { backgroundColor: '#f1f1f1', color: '#747474' });
+    gsap.set([...structureNodes, ...structureEdges], { opacity: 0 });
+    gsap.set(navNodes, { opacity: 0.28 });
+    gsap.set(navEdges, { opacity: 0.22 });
     gsap.set([sourceToken, agentToken], { opacity: 0 });
     gsap.set(sourceToken, place(sourceToken, sourceStart));
     gsap.set(agentToken, place(agentToken, corePoint));
     gsap.set(outcome, { opacity: 0.22, backgroundColor: '#f1f1f1', color: '#777777' });
 
-    const tl = gsap.timeline({ repeat: -1, repeatDelay: 1.35, defaults: { ease: 'power2.inOut' } });
-    rows.forEach((row) => {
-      tl.to(row, { opacity: 1, color: '#151515', x: 3, duration: 0.22 })
-        .to(row, { x: 0, duration: 0.14 });
+    const tl = gsap.timeline({ repeat: -1, repeatDelay: 1.4, defaults: { ease: 'power1.inOut' } });
+    rows.forEach((row, index) => {
+      tl.to(row, { opacity: 1, color: '#151515', duration: 0.18 })
+        .to(scans[index], { scaleX: 1, duration: 0.22 });
     });
-    tl.set(sourceToken, { opacity: 1 })
+    tl.to(generator, { backgroundColor: '#151515', color: '#ffffff', duration: 0.24 })
+      .set(sourceToken, { opacity: 1 })
       .to(sourceToken, { ...place(sourceToken, corePoint), duration: 0.72 })
       .set(sourceToken, { opacity: 0 })
-      .to(structureNodes, { opacity: 1, duration: 0.18, stagger: 0.09 })
-      .to(structureEdges, { opacity: 1, duration: 0.22, stagger: 0.08 })
-      .to(navNodes, { opacity: 1, duration: 0.18, stagger: 0.07 })
-      .to(navEdges, { opacity: 1, duration: 0.18, stagger: 0.08 })
-      .set(agentToken, { opacity: 1 });
+      .to(structureNodes, { opacity: 1, duration: 0.16, stagger: 0.07 })
+      .to(structureEdges, { opacity: 1, duration: 0.18, stagger: 0.07 })
+      .to(navNodes, { opacity: 0.62, duration: 0.18, stagger: 0.05 })
+      .to(navEdges, { opacity: 0.48, duration: 0.18, stagger: 0.05 })
+      .set(agentToken, { ...place(agentToken, route[0]), opacity: 1 });
 
     route.forEach((target, index) => {
-      tl.to(agentToken, { ...place(agentToken, target), duration: index === 0 ? 0.65 : 0.42 })
-        .to(navNodes[index], { fill: '#151515', duration: 0.12 }, '<');
+      if (index === 0) {
+        tl.to(routeNodes[index], { opacity: 1, duration: 0.12 });
+        return;
+      }
+      tl.to(agentToken, { ...place(agentToken, target), duration: 0.46, ease: 'none' })
+        .to(routeEdges[index - 1], { opacity: 1, stroke: '#151515', duration: 0.12 }, '<')
+        .to(routeNodes[index], { opacity: 1, duration: 0.12 }, '<');
     });
 
     tl.to(agentToken, { ...place(agentToken, point(track, outcomePort)), duration: 0.62 })
       .set(agentToken, { opacity: 0 })
       .to(outcome, { opacity: 1, backgroundColor: '#151515', color: '#ffffff', duration: 0.28 })
-      .to({}, { duration: 1.15 })
+      .to({}, { duration: 1.3 })
       .to(outcome, { opacity: 0.22, backgroundColor: '#f1f1f1', color: '#777777', duration: 0.2 })
-      .set([...structureNodes, ...structureEdges, ...navEdges], { opacity: 0 })
-      .set(navNodes, { opacity: 0.2, fill: '#cfcfcf' })
+      .set([...structureNodes, ...structureEdges], { opacity: 0 })
+      .set(navNodes, { opacity: 0.28 })
+      .set(navEdges, { opacity: 0.22, stroke: '#9c9c9c' })
+      .set(scans, { scaleX: 0 })
+      .set(generator, { backgroundColor: '#f1f1f1', color: '#747474' })
       .set(rows, { opacity: 0.38, color: '#777777' });
   });
 
   return (
     <figure className="research-figure sequence-figure map-sequence" ref={ref}>
-      <figcaption className="sr-only">Repository source becomes structure, guides a deliberate navigation path, and lands in a verified outcome.</figcaption>
+      <figcaption className="sr-only">Repository files are processed programmatically into deterministic structure, which guides an agent through a precise traversal to task completion.</figcaption>
       <div className="sequence-track" aria-hidden="true">
         <section className="sequence-stage repository-stage">
-          <header><span>01</span><p>Repository</p></header>
+          <header><span>01 · source → artifact</span><p>Programmatic generation</p></header>
           <div className="repository-files">
-            {FILES.map((file) => <span className="repository-file" key={file}><code>{file}</code><i className="ui-port stage-port"/></span>)}
+            {FILES.map((file) => <span className="repository-file" key={file}><code>{file}</code><i className="generation-scan"/></span>)}
           </div>
+          <div className="generation-card"><span>deterministic build</span><i className="ui-port generator-output"/></div>
         </section>
         <i className="track-line"/>
         <section className="sequence-stage structure-stage">
-          <header><span>02</span><p>Structure</p></header>
+          <header><span>02 · canonical</span><p>Structure</p></header>
           <div className="structure-map">
-            <RoutedGraph className="structure" nodes={STRUCTURE_NODES} edges={STRUCTURE_EDGES} width={176} height={124} rankdir="LR" ranksep={38} nodesep={26}/>
+            <RoutedGraph className="structure" nodes={STRUCTURE_NODES} edges={STRUCTURE_EDGES} width={176} height={136} rankdir="LR" ranksep={26} nodesep={18} labelled/>
           </div>
         </section>
         <i className="track-line"/>
         <section className="sequence-stage navigation-stage">
-          <header><span>03</span><p>Navigation</p></header>
+          <header><span>03 · agent traversal</span><p>Navigation</p></header>
           <div className="navigation-map">
-            <RoutedGraph className="nav" nodes={NAVIGATION_NODES} edges={NAVIGATION_EDGES} width={176} height={124} rankdir="LR" ranksep={32} nodesep={16}/>
+            <RoutedGraph className="nav" nodes={NAVIGATION_NODES} edges={NAVIGATION_EDGES} width={176} height={136} rankdir="LR" ranksep={24} nodesep={18} labelled/>
           </div>
         </section>
         <i className="track-line"/>
         <section className="sequence-stage outcome-stage">
-          <header><span>04</span><p>Outcome</p></header>
-          <div className="verified-card"><i className="ui-port outcome-port"/><strong>Verified</strong><span>correctness</span></div>
+          <header><span>04 · result</span><p>Outcome</p></header>
+          <div className="outcome-card"><i className="ui-port outcome-port"/><strong>Task completed</strong><span>informed traversal</span></div>
         </section>
         <span className="motion-token source-token"><em>source</em></span>
         <span className="motion-token agent-token"><em>agent</em></span>
@@ -273,11 +297,11 @@ function MapBenchView({ onNavigate }) {
       <ResearchCopy
         id="mapbench"
         title="MapBench"
-        statement="Does repository structure help coding agents work in unfamiliar codebases?"
+        statement="Do deterministic structural artifacts help agents traverse unfamiliar codebases more efficiently?"
         action={<button className="primary-pill text-action" onClick={() => onNavigate('benchmark')}>See the benchmark <span aria-hidden="true">→</span></button>}
       >
-        <p>MapBench compares agent performance with and without deterministic structural views of the same source code.</p>
-        <p>The model, task, commit, harness, and environment stay fixed. Only the representation changes.</p>
+        <p>MapBench compares agent performance on the same codebase with and without deterministic structural representations.</p>
+        <p>The experiment tests whether these artifacts accelerate repository understanding and improve software engineering task performance.</p>
       </ResearchCopy>
       <MapExperimentFigure/>
     </ViewFrame>
@@ -313,6 +337,7 @@ function CartographFigure() {
     const treeSitter = q(root, '.tree-sitter-card');
     const parserInput = q(root, '.parser-input');
     const parserOutput = q(root, '.parser-output');
+    const parserPhases = qa(root, '.parser-phase');
     const irNodes = qa(root, '.ir-node');
     const irEdges = qa(root, '.ir-edge');
     const irEntry = q(root, '[data-node="module"]');
@@ -324,11 +349,12 @@ function CartographFigure() {
     gsap.set(files, { opacity: 0.38, color: '#777777' });
     gsap.set([...fileTokens, irToken], { opacity: 0 });
     gsap.set(treeSitter, { backgroundColor: '#f1f1f1', color: '#686868' });
+    gsap.set(parserPhases, { opacity: 0.32, backgroundColor: '#dddddd' });
     gsap.set([...irNodes, ...irEdges], { opacity: 0 });
     gsap.set(projections, { opacity: 0.26, backgroundColor: '#f1f1f1', color: '#777777' });
     gsap.set(projectionTokens, { opacity: 0 });
 
-    const tl = gsap.timeline({ repeat: -1, repeatDelay: 1.35, defaults: { ease: 'power2.inOut' } });
+    const tl = gsap.timeline({ repeat: -1, repeatDelay: 1.4, defaults: { ease: 'power1.inOut' } });
     files.forEach((file, index) => {
       const start = point(track, q(file, '.stage-port'));
       gsap.set(fileTokens[index], place(fileTokens[index], start));
@@ -339,6 +365,8 @@ function CartographFigure() {
     });
 
     tl.to(treeSitter, { backgroundColor: '#151515', color: '#ffffff', duration: 0.24 })
+      .to(parserPhases[0], { opacity: 1, backgroundColor: '#ffffff', duration: 0.2 })
+      .to(parserPhases[1], { opacity: 1, backgroundColor: '#ffffff', duration: 0.2 })
       .set(irToken, { ...place(irToken, point(track, parserOutput)), opacity: 1 })
       .to(irToken, { ...place(irToken, point(track, irEntry)), duration: 0.62 })
       .set(irToken, { opacity: 0 })
@@ -361,6 +389,7 @@ function CartographFigure() {
       .set(projectionTokens, { opacity: 0 })
       .set(files, { opacity: 0.38, color: '#777777' })
       .set(treeSitter, { backgroundColor: '#f1f1f1', color: '#686868' })
+      .set(parserPhases, { opacity: 0.32, backgroundColor: '#dddddd' })
       .set([...irNodes, ...irEdges], { opacity: 0 })
       .set(projections, { opacity: 0.26, backgroundColor: '#f1f1f1', color: '#777777' });
   });
@@ -370,26 +399,26 @@ function CartographFigure() {
       <figcaption className="sr-only">Files enter Tree-sitter one at a time, form a canonical intermediate representation, then activate deterministic projections.</figcaption>
       <div className="sequence-track" aria-hidden="true">
         <section className="sequence-stage source-stage">
-          <header><span>01</span><p>Source files</p></header>
+          <header><span>01 · repository</span><p>Source files</p></header>
           <div className="source-files">
             {SOURCE_FILES.map((file) => <span className="source-file" key={file}><code>{file}</code><i className="ui-port stage-port"/></span>)}
           </div>
         </section>
         <i className="track-line"/>
         <section className="sequence-stage parser-stage">
-          <header><span>02</span><p>Parse</p></header>
-          <div className="tree-sitter-card"><i className="ui-port parser-input"/><i className="ui-port parser-output"/><strong>Tree-sitter</strong><span>typed parse</span></div>
+          <header><span>02 · grammar-aware</span><p>Parsing</p></header>
+          <div className="tree-sitter-card"><i className="ui-port parser-input"/><i className="ui-port parser-output"/><strong>Tree-sitter</strong><span>parse tree → extract</span><div className="parser-phases"><i className="parser-phase"/><i className="parser-phase"/></div></div>
         </section>
         <i className="track-line parser-to-ir"/>
         <section className="sequence-stage ir-stage">
-          <header><span>03</span><p>Canonical IR</p></header>
+          <header><span>03 · normalized</span><p>Canonical IR</p></header>
           <div className="canonical-ir">
             <RoutedGraph className="ir" nodes={IR_NODES} edges={IR_EDGES} width={164} height={150} rankdir="TB" ranksep={26} nodesep={20} labelled/>
           </div>
         </section>
         <i className="track-line"/>
         <section className="sequence-stage projection-stage">
-          <header><span>04</span><p>Projections</p></header>
+          <header><span>04 · deterministic</span><p>Projections</p></header>
           <div className="projection-list">
             {PROJECTIONS.map((item) => <span className="projection-row" key={item}><i className="ui-port projection-port"/>{item}</span>)}
           </div>
@@ -405,36 +434,47 @@ function CartographFigure() {
 function CartographView() {
   return (
     <ViewFrame id="cartograph" className="two-column cartograph-view">
-      <ResearchCopy id="cartograph" title="Cartograph" statement="One source of structural truth, projected many ways.">
-        <p>Cartograph parses source into a canonical representation of modules, symbols, locations, and typed relationships.</p>
-        <p>Architecture maps, skeletons, graph queries, and Mermaid views are deterministic projections of that shared structure.</p>
-        <p className="quiet-copy">TypeScript, JavaScript, Python, Go, and Rust.</p>
+      <ResearchCopy id="cartograph" title="Cartograph" statement="The structural analysis system used inside MapBench.">
+        <p>Cartograph uses Tree-sitter to parse source code into a canonical representation of modules, symbols, locations, and typed relationships.</p>
+        <p>MapBench utilizes Cartograph’s deterministic projections—architecture, skeleton, call graph, and Mermaid—as experimental artifacts.</p>
+        <p className="language-tag">TypeScript, JavaScript, Python, Go, and Rust.</p>
       </ResearchCopy>
       <CartographFigure/>
     </ViewFrame>
   );
 }
 
-const CONDITIONS = ['Regular', 'Architecture', 'Skeleton', 'Call graph', 'All'];
+const CONDITIONS = ['Regular code', 'Architecture', 'Skeleton', 'Call graph', 'All'];
+const BENCHMARK_ARTIFACTS = ['architecture', 'skeleton', 'call graph'];
+const BENCHMARK_MEASURES = ['Tokens', 'Runtime', 'Cost', 'Navigation behavior'];
+
 function BenchmarkFigure() {
   const ref = useRef(null);
 
   useCausalTimeline(ref, (root) => {
     const track = q(root, '.benchmark-track');
+    const cartograph = q(root, '.benchmark-cartograph-card');
+    const artifacts = qa(root, '.benchmark-artifact');
     const conditions = qa(root, '.condition-row');
+    const overlays = qa(root, '.condition-overlay');
     const slots = qa(root, '.run-slot');
     const tokens = qa(root, '.condition-run-token');
     const resultToken = q(root, '.result-token');
-    const verifier = q(root, '.verifier-card');
-    const verifierPort = q(root, '.verifier-port');
+    const measures = qa(root, '.measure-row');
+    const measuresPort = q(root, '.measures-port');
 
+    gsap.set(cartograph, { backgroundColor: '#f1f1f1', color: '#777777' });
+    gsap.set(artifacts, { opacity: 0.25, color: '#777777' });
     gsap.set(conditions, { opacity: 0.48, color: '#6f6f6f' });
-    gsap.set(qa(root, '.condition-overlay'), { opacity: 0 });
+    gsap.set(overlays, { opacity: 0 });
     gsap.set(slots, { opacity: 0.32, backgroundColor: '#f1f1f1', color: '#777777' });
     gsap.set([...tokens, resultToken], { opacity: 0 });
-    gsap.set(verifier, { opacity: 0.3, backgroundColor: '#f1f1f1', color: '#777777' });
+    gsap.set(measures, { opacity: 0.28, backgroundColor: '#f1f1f1', color: '#777777' });
 
-    const tl = gsap.timeline({ repeat: -1, repeatDelay: 1.1, defaults: { ease: 'power2.inOut' } });
+    const tl = gsap.timeline({ repeat: -1, repeatDelay: 1.4, defaults: { ease: 'power1.inOut' } });
+    tl.to(cartograph, { backgroundColor: '#151515', color: '#ffffff', duration: 0.24 })
+      .to(artifacts, { opacity: 1, color: '#151515', duration: 0.17, stagger: 0.12 });
+
     conditions.forEach((condition) => {
       const overlay = q(condition, '.condition-overlay');
       const source = point(track, q(condition, '.condition-port'));
@@ -444,42 +484,57 @@ function BenchmarkFigure() {
       tokens.forEach((token, index) => {
         const destination = point(track, q(slots[index], '.run-target'));
         tl.set(token, { ...place(token, source), opacity: 1 })
-          .to(token, { ...place(token, destination), duration: 0.62 })
+          .to(token, { ...place(token, destination), duration: 0.42, ease: 'none' })
           .set(token, { opacity: 0 })
-          .to(slots[index], { opacity: 1, backgroundColor: '#dedede', color: '#151515', duration: 0.16 });
+          .to(slots[index], { opacity: 1, backgroundColor: '#dedede', color: '#151515', duration: 0.13 });
       });
 
-      tl.set(resultToken, { ...place(resultToken, point(track, q(slots[2], '.run-target'))), opacity: 1 })
-        .to(resultToken, { ...place(resultToken, point(track, verifierPort)), duration: 0.68 })
-        .set(resultToken, { opacity: 0 })
-        .to(verifier, { opacity: 1, backgroundColor: '#151515', color: '#ffffff', duration: 0.22 })
-        .to({}, { duration: 0.6 })
+      tl.to({}, { duration: 0.24 })
         .to(overlay, { opacity: 0, duration: 0.16 })
         .to(condition, { opacity: 0.48, color: '#6f6f6f', duration: 0.16 }, '<')
-        .set(slots, { opacity: 0.24, backgroundColor: '#f1f1f1', color: '#777777' })
-        .set(verifier, { opacity: 0.3, backgroundColor: '#f1f1f1', color: '#777777' });
+        .set(slots, { opacity: 0.24, backgroundColor: '#f1f1f1', color: '#777777' });
     });
+
+    tl.set(resultToken, { ...place(resultToken, point(track, q(slots[2], '.run-target'))), opacity: 1 })
+      .to(resultToken, { ...place(resultToken, point(track, measuresPort)), duration: 0.68, ease: 'none' })
+      .set(resultToken, { opacity: 0 })
+      .to(measures, { opacity: 1, backgroundColor: '#151515', color: '#ffffff', duration: 0.16, stagger: 0.12 })
+      .to({}, { duration: 1.35 })
+      .set(cartograph, { backgroundColor: '#f1f1f1', color: '#777777' })
+      .set(artifacts, { opacity: 0.25, color: '#777777' })
+      .set(measures, { opacity: 0.28, backgroundColor: '#f1f1f1', color: '#777777' });
   });
 
   return (
     <figure className="research-figure benchmark-sequence" ref={ref}>
-      <figcaption className="sr-only">Model, harness, task, and environment remain fixed while each representation completes runs 01, 02, and 03 in order.</figcaption>
+      <figcaption className="sr-only">Cartograph generates structural artifacts, five representation conditions are compared through repeated controlled runs, and tokens, runtime, cost, and navigation behavior are measured.</figcaption>
       <div className="benchmark-track" aria-hidden="true">
+        <section className="benchmark-generation-stage">
+          <header><span>01 · Cartograph</span><p>Generate artifacts</p></header>
+          <div className="benchmark-cartograph-card"><strong>Cartograph</strong><span>canonical IR</span></div>
+          <div className="benchmark-artifacts">
+            {BENCHMARK_ARTIFACTS.map((artifact) => <span className="benchmark-artifact" key={artifact}>{artifact}</span>)}
+          </div>
+        </section>
+        <i className="benchmark-line"/>
         <section className="condition-list">
-          <header><span>Variable</span><p>Representation</p></header>
+          <header><span>02 · variable</span><p>Representation</p></header>
           {CONDITIONS.map((condition) => <div className="condition-row" key={condition}><i className="condition-overlay"/><span>{condition}</span><i className="ui-port condition-port"/></div>)}
         </section>
         <i className="benchmark-line"/>
         <section className="run-bank">
-          <header><span>Sequential</span><p>Runs</p></header>
+          <header><span>03 · controlled</span><p>Repeated runs</p></header>
+          <div className="fixed-setup"><span>same model</span><span>task</span><span>tools</span></div>
           <div className="run-slots">
             {['01', '02', '03'].map((run) => <span className="run-slot" key={run}><i className="ui-dot run-target"/><b>{run}</b></span>)}
           </div>
         </section>
         <i className="benchmark-line"/>
-        <section className="verify-stage">
-          <header><span>Held-out</span><p>Outcome</p></header>
-          <div className="verifier-card"><i className="ui-port verifier-port"/><span>Verified</span></div>
+        <section className="measure-stage">
+          <header><span>04 · analyze</span><p>Measures</p></header>
+          <div className="measure-list">
+            {BENCHMARK_MEASURES.map((measure, index) => <span className="measure-row" key={measure}>{index === 0 && <i className="ui-port measures-port"/>}{measure}</span>)}
+          </div>
         </section>
         {['01', '02', '03'].map((run) => <span className="motion-token run-token condition-run-token" key={run}><em>{run}</em></span>)}
         <span className="motion-token run-token result-token"><em>result</em></span>
@@ -491,62 +546,201 @@ function BenchmarkFigure() {
 function BenchmarkView() {
   return (
     <ViewFrame id="benchmark" className="two-column benchmark-view">
-      <ResearchCopy id="benchmark" title="Benchmark" statement="Change the representation. Hold the agent constant.">
-        <p>Every condition keeps access to the repository source. Only the additional structural view changes.</p>
-        <p>Each task runs three times in a fresh sandbox. Correctness is measured by a held-out verifier.</p>
-        <p className="quiet-copy">Secondary measures include tokens, runtime, cost, and navigation behavior.</p>
+      <ResearchCopy id="benchmark" title="Benchmark" statement="Measure how structural representation changes agent behavior under controlled conditions.">
+        <p>Cartograph generates the artifacts used to compare regular code, each single-artifact condition, and the all-artifact condition.</p>
+        <p>The model, task, tools, repository, and environment remain fixed across repeated runs; only the representation changes.</p>
+        <div className="measure-summary"><span>Primary measures</span><strong>Tokens</strong><strong>Runtime</strong><strong>Cost</strong><strong>Navigation behavior</strong></div>
       </ResearchCopy>
       <BenchmarkFigure/>
     </ViewFrame>
   );
 }
 
+const CHECK = {
+  passed: { status: 'passed' },
+  failed: { status: 'failed' },
+  timeout: { status: 'timeout' },
+  unavailable: { status: 'unavailable' },
+};
+
+function mockRun({ condition, run, score, passed, durationMs, tokens, cost, commands, failedCommands = 0, sourceFiles, outlineFiles, firstEditMs, filesChanged, status = 'completed', regression = 'passed', typecheck = 'passed', build = 'passed' }) {
+  return {
+    schemaVersion: 3,
+    condition,
+    run,
+    status,
+    durationMs,
+    tokens: {
+      input: tokens[0],
+      uncachedInput: tokens[0] - tokens[1],
+      cachedInput: tokens[1],
+      output: tokens[2],
+      reasoning: tokens[3],
+      total: tokens[0] + tokens[2],
+    },
+    estimatedCostUsd: cost,
+    commandCount: commands,
+    failedCommandCount: failedCommands,
+    navigation: {
+      uniqueSourceFiles: sourceFiles,
+      uniqueOutlineFiles: outlineFiles,
+    },
+    editNavigation: {
+      firstSourceEditObserved: firstEditMs !== null,
+      elapsedMs: firstEditMs,
+      censoredAtMs: durationMs,
+    },
+    filesChanged,
+    fileCount: filesChanged.length,
+    hiddenGrader: {
+      status: passed ? 'passed' : 'failed',
+      score,
+      maxScore: 1,
+      passed,
+    },
+    checks: {
+      regression: CHECK[regression],
+      typecheck: CHECK[typecheck],
+      build: CHECK[build],
+    },
+  };
+}
+
+const EXPERIMENT_RESULTS = [
+  {
+    id: 'regular-code',
+    label: 'Regular code',
+    runs: [
+      mockRun({ condition: 'regular-code', run: 1, score: .72, passed: true, durationMs: 598000, tokens: [112800, 38400, 13800, 6200], cost: .91, commands: 34, failedCommands: 1, sourceFiles: 17, outlineFiles: 0, firstEditMs: 201000, filesChanged: ['src/runner.ts', 'src/workspace.ts', 'test/runner.test.ts', 'package.json'] }),
+      mockRun({ condition: 'regular-code', run: 2, score: .61, passed: false, durationMs: 641000, tokens: [126200, 41900, 15100, 7100], cost: 1.04, commands: 38, failedCommands: 2, sourceFiles: 21, outlineFiles: 0, firstEditMs: 244000, filesChanged: ['src/runner.ts', 'src/verify.ts', 'test/runner.test.ts'], regression: 'failed' }),
+      mockRun({ condition: 'regular-code', run: 3, score: .78, passed: true, durationMs: 570000, tokens: [105400, 36200, 12900, 5800], cost: .85, commands: 31, sourceFiles: 16, outlineFiles: 0, firstEditMs: 184000, filesChanged: ['src/runner.ts', 'src/workspace.ts', 'src/verify.ts', 'test/runner.test.ts'] }),
+    ],
+  },
+  {
+    id: 'outline-only',
+    label: 'Architecture map only',
+    runs: [
+      mockRun({ condition: 'outline-only', run: 1, score: .83, passed: true, durationMs: 522000, tokens: [96800, 34400, 11800, 5100], cost: .77, commands: 28, sourceFiles: 13, outlineFiles: 1, firstEditMs: 143000, filesChanged: ['src/runner.ts', 'src/verify.ts', 'test/runner.test.ts'] }),
+      mockRun({ condition: 'outline-only', run: 2, score: .88, passed: true, durationMs: 487000, tokens: [91200, 32800, 10900, 4800], cost: .71, commands: 26, sourceFiles: 12, outlineFiles: 1, firstEditMs: 126000, filesChanged: ['src/runner.ts', 'src/workspace.ts', 'src/verify.ts', 'test/runner.test.ts'] }),
+      mockRun({ condition: 'outline-only', run: 3, score: .79, passed: true, durationMs: 548000, tokens: [101600, 35100, 12400, 5500], cost: .81, commands: 30, failedCommands: 1, sourceFiles: 14, outlineFiles: 1, firstEditMs: 151000, filesChanged: ['src/runner.ts', 'src/verify.ts', 'test/runner.test.ts'] }),
+    ],
+  },
+  {
+    id: 'callgraph-only',
+    label: 'Call graph only',
+    runs: [
+      mockRun({ condition: 'callgraph-only', run: 1, score: .76, passed: true, durationMs: 536000, tokens: [99400, 36200, 12100, 5400], cost: .80, commands: 31, sourceFiles: 14, outlineFiles: 1, firstEditMs: 158000, filesChanged: ['src/runner.ts', 'src/workspace.ts', 'test/runner.test.ts'] }),
+      mockRun({ condition: 'callgraph-only', run: 2, score: .81, passed: true, durationMs: 501000, tokens: [93700, 33700, 11400, 4900], cost: .74, commands: 29, sourceFiles: 12, outlineFiles: 1, firstEditMs: 139000, filesChanged: ['src/runner.ts', 'src/verify.ts', 'test/runner.test.ts', 'package.json'] }),
+      mockRun({ condition: 'callgraph-only', run: 3, score: .28, passed: false, durationMs: 900000, tokens: [134900, 45200, 14800, 7600], cost: 1.10, commands: 36, failedCommands: 3, sourceFiles: 18, outlineFiles: 1, firstEditMs: 267000, filesChanged: ['src/runner.ts', 'src/workspace.ts'], status: 'timeout', regression: 'timeout', typecheck: 'unavailable', build: 'unavailable' }),
+    ],
+  },
+  {
+    id: 'skeleton-only',
+    label: 'Skeleton only',
+    runs: [
+      mockRun({ condition: 'skeleton-only', run: 1, score: .86, passed: true, durationMs: 468000, tokens: [87200, 31600, 10400, 4600], cost: .67, commands: 25, sourceFiles: 11, outlineFiles: 7, firstEditMs: 112000, filesChanged: ['src/runner.ts', 'src/workspace.ts', 'src/verify.ts', 'test/runner.test.ts'] }),
+      mockRun({ condition: 'skeleton-only', run: 2, score: .82, passed: true, durationMs: 492000, tokens: [90800, 32900, 11100, 4900], cost: .71, commands: 27, sourceFiles: 12, outlineFiles: 6, firstEditMs: 124000, filesChanged: ['src/runner.ts', 'src/verify.ts', 'test/runner.test.ts'] }),
+      mockRun({ condition: 'skeleton-only', run: 3, score: .89, passed: true, durationMs: 451000, tokens: [84600, 30700, 9800, 4200], cost: .64, commands: 24, sourceFiles: 10, outlineFiles: 7, firstEditMs: 105000, filesChanged: ['src/runner.ts', 'src/workspace.ts', 'src/verify.ts', 'test/runner.test.ts'] }),
+    ],
+  },
+  {
+    id: 'all-outline-aids',
+    label: 'All three artifacts',
+    runs: [
+      mockRun({ condition: 'all-outline-aids', run: 1, score: .91, passed: true, durationMs: 429000, tokens: [79800, 29600, 9400, 4000], cost: .60, commands: 22, sourceFiles: 9, outlineFiles: 9, firstEditMs: 88000, filesChanged: ['src/runner.ts', 'src/workspace.ts', 'src/verify.ts', 'test/runner.test.ts'] }),
+      mockRun({ condition: 'all-outline-aids', run: 2, score: .94, passed: true, durationMs: 407000, tokens: [76100, 28200, 8900, 3800], cost: .57, commands: 21, sourceFiles: 8, outlineFiles: 10, firstEditMs: 79000, filesChanged: ['src/runner.ts', 'src/workspace.ts', 'src/verify.ts', 'test/runner.test.ts'] }),
+      mockRun({ condition: 'all-outline-aids', run: 3, score: .88, passed: true, durationMs: 446000, tokens: [82400, 30400, 9600, 4200], cost: .62, commands: 23, sourceFiles: 10, outlineFiles: 8, firstEditMs: 94000, filesChanged: ['src/runner.ts', 'src/verify.ts', 'test/runner.test.ts'] }),
+    ],
+  },
+];
+
+const mean = (values) => values.reduce((total, value) => total + value, 0) / values.length;
+const formatDuration = (ms) => `${Math.floor(ms / 60000)}m ${String(Math.round((ms % 60000) / 1000)).padStart(2, '0')}s`;
+const formatTokens = (value) => `${(value / 1000).toFixed(1)}k`;
+const formatRun = (run) => String(run).padStart(2, '0');
+
+function CheckStatus({ label, value }) {
+  return <span className={`check-status ${value.status}`}><i aria-hidden="true"/><span>{label}</span> {value.status}</span>;
+}
+
+function RunDetail({ condition, run }) {
+  const score = run.hiddenGrader.score / run.hiddenGrader.maxScore;
+  const firstEdit = run.editNavigation.firstSourceEditObserved ? formatDuration(run.editNavigation.elapsedMs) : `>${formatDuration(run.editNavigation.censoredAtMs)}`;
+  return (
+    <section className="run-detail" aria-live="polite" aria-label={`${condition.label}, run ${formatRun(run.run)} details`}>
+      <header className="run-detail-header">
+        <div><span>Selected run</span><h2>{condition.label} <b>/ {formatRun(run.run)}</b></h2></div>
+        <span className={`run-status ${run.status}`}>{run.status}</span>
+      </header>
+      <dl className="run-detail-grid">
+        <div><dt>Hidden grader</dt><dd>{score.toFixed(2)} <small>/ 1.00</small></dd></div>
+        <div><dt>Duration</dt><dd>{formatDuration(run.durationMs)}</dd></div>
+        <div className="token-detail"><dt>Tokens · input / cached / output / reasoning</dt><dd>{run.tokens.input.toLocaleString()} <i>/</i> {run.tokens.cachedInput.toLocaleString()} <i>/</i> {run.tokens.output.toLocaleString()} <i>/</i> {run.tokens.reasoning.toLocaleString()}</dd></div>
+        <div><dt>Estimated cost</dt><dd>${run.estimatedCostUsd.toFixed(2)}</dd></div>
+        <div><dt>Commands</dt><dd>{run.commandCount} <small>· {run.failedCommandCount} failed</small></dd></div>
+        <div><dt>Files accessed</dt><dd>{run.navigation.uniqueSourceFiles} source <small>· {run.navigation.uniqueOutlineFiles} outline</small></dd></div>
+        <div><dt>Time to first edit</dt><dd>{firstEdit}</dd></div>
+        <div><dt>Files changed</dt><dd>{run.fileCount} <small title={run.filesChanged.join(', ')}>· {run.filesChanged.join(', ')}</small></dd></div>
+        <div className="check-detail"><dt>Verification checks</dt><dd><CheckStatus label="regression" value={run.checks.regression}/><CheckStatus label="typecheck" value={run.checks.typecheck}/><CheckStatus label="build" value={run.checks.build}/></dd></div>
+      </dl>
+    </section>
+  );
+}
+
 function ExperimentsFigure() {
-  const ref = useRef(null);
-
-  useCausalTimeline(ref, (root) => {
-    const conditions = qa(root, '.experiment-condition');
-    const steps = qa(root, '.progress-step');
-
-    gsap.set(conditions, { opacity: 0.34, color: '#777777' });
-    gsap.set(steps, { backgroundColor: '#ededed', color: '#8b8b8b' });
-    const tl = gsap.timeline({ repeat: -1, repeatDelay: 1.2 });
-
-    conditions.forEach((condition) => {
-      tl.to(condition, { opacity: 1, color: '#151515', x: 5, duration: 0.2 });
-      steps.forEach((step) => {
-        tl.to(step, { backgroundColor: '#151515', color: '#ffffff', duration: 0.2 })
-          .to({}, { duration: 0.28 });
-      });
-      tl.to({}, { duration: 0.55 })
-        .to(condition, { opacity: 0.34, color: '#777777', x: 0, duration: 0.16 })
-        .set(steps, { backgroundColor: '#ededed', color: '#8b8b8b' });
-    });
-  });
+  const [selection, setSelection] = useState({ conditionId: 'all-outline-aids', run: 2 });
+  const selectedCondition = EXPERIMENT_RESULTS.find((condition) => condition.id === selection.conditionId);
+  const selectedRun = selectedCondition.runs.find((run) => run.run === selection.run);
 
   return (
-    <figure className="research-figure experiments-figure" ref={ref}>
-      <figcaption className="sr-only">Each experimental condition advances through three runs and held-out verification before the next condition begins.</figcaption>
-      <div className="experiment-queue" aria-hidden="true">
-        <section className="queue-list">
-          <header><span>Queue</span><p>Condition</p></header>
-          {CONDITIONS.map((condition) => <div className="experiment-condition" key={condition}>{condition}</div>)}
-        </section>
-        <section className="progress-panel">
-          <p>Verified runs populate results</p>
-          <div className="progress-steps">
-            <span className="progress-step"><b>01</b>run</span>
-            <i/>
-            <span className="progress-step"><b>02</b>run</span>
-            <i/>
-            <span className="progress-step"><b>03</b>run</span>
-            <i/>
-            <span className="progress-step"><b>✓</b>verify</span>
-          </div>
-          <div className="results-message"><h2>Experiments in progress</h2><p>Results appear only after held-out verification.</p></div>
-        </section>
+    <div className="experiment-results">
+      <div className="experiment-meta">
+        <span className="preview-label">Mock data / experiment preview</span>
+        <span>n = 3 per condition</span>
       </div>
-    </figure>
+      <div className="results-table-scroll">
+        <table className="results-table">
+          <caption className="sr-only">Mock MapBench results, summarized by repository representation.</caption>
+          <thead>
+            <tr>
+              <th scope="col">Condition</th>
+              <th scope="col">Runs <small>01 / 02 / 03</small></th>
+              <th scope="col">Mean grader<br/>score</th>
+              <th scope="col">Success<br/>rate</th>
+              <th scope="col">Mean<br/>duration</th>
+              <th scope="col">Mean total<br/>tokens</th>
+              <th scope="col">Mean<br/>commands</th>
+              <th scope="col">Mean files<br/>changed</th>
+            </tr>
+          </thead>
+          <tbody>
+            {EXPERIMENT_RESULTS.map((condition) => {
+              const successes = condition.runs.filter((run) => run.hiddenGrader.passed).length;
+              return (
+                <tr key={condition.id} className={selection.conditionId === condition.id ? 'selected-condition' : ''}>
+                  <th scope="row">{condition.label}</th>
+                  <td>
+                    <div className="run-selector">
+                      {condition.runs.map((run) => {
+                        const active = selection.conditionId === condition.id && selection.run === run.run;
+                        return <button key={run.run} className={`${active ? 'active' : ''} ${run.status}`} aria-pressed={active} aria-label={`${condition.label}, run ${formatRun(run.run)}, ${run.status}`} onMouseEnter={() => setSelection({ conditionId: condition.id, run: run.run })} onFocus={() => setSelection({ conditionId: condition.id, run: run.run })} onClick={() => setSelection({ conditionId: condition.id, run: run.run })}><i aria-hidden="true"/>{formatRun(run.run)}</button>;
+                      })}
+                    </div>
+                  </td>
+                  <td>{mean(condition.runs.map((run) => run.hiddenGrader.score / run.hiddenGrader.maxScore)).toFixed(2)}</td>
+                  <td>{Math.round(successes / condition.runs.length * 100)}% <small>{successes}/{condition.runs.length}</small></td>
+                  <td>{formatDuration(mean(condition.runs.map((run) => run.durationMs)))}</td>
+                  <td>{formatTokens(mean(condition.runs.map((run) => run.tokens.total)))}</td>
+                  <td>{mean(condition.runs.map((run) => run.commandCount)).toFixed(1)}</td>
+                  <td>{mean(condition.runs.map((run) => run.fileCount)).toFixed(1)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <RunDetail condition={selectedCondition} run={selectedRun}/>
+    </div>
   );
 }
 
@@ -555,8 +749,7 @@ function ExperimentsView() {
     <ViewFrame id="experiments" className="experiments-view">
       <div className="experiments-heading">
         <h1 id="experiments-title">Experiments</h1>
-        <p className="primary-statement">Results, when the benchmark is ready.</p>
-        <p>No result is implied before verified runs are complete.</p>
+        <p>Per-run results across controlled repository representations.</p>
       </div>
       <ExperimentsFigure/>
     </ViewFrame>
