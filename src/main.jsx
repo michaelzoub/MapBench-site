@@ -416,8 +416,6 @@ function CartographView() {
 }
 
 const CONDITIONS = ['Regular', 'Architecture', 'Skeleton', 'Call graph', 'All'];
-const FIXED = ['model', 'harness', 'task', 'environment'];
-
 function BenchmarkFigure() {
   const ref = useRef(null);
 
@@ -466,10 +464,6 @@ function BenchmarkFigure() {
   return (
     <figure className="research-figure benchmark-sequence" ref={ref}>
       <figcaption className="sr-only">Model, harness, task, and environment remain fixed while each representation completes runs 01, 02, and 03 in order.</figcaption>
-      <div className="fixed-strip" aria-hidden="true">
-        <span className="fixed-label">Fixed</span>
-        {FIXED.map((item) => <span className="fixed-item" key={item}><i className="ui-dot"/>{item}</span>)}
-      </div>
       <div className="benchmark-track" aria-hidden="true">
         <section className="condition-list">
           <header><span>Variable</span><p>Representation</p></header>
@@ -485,7 +479,7 @@ function BenchmarkFigure() {
         <i className="benchmark-line"/>
         <section className="verify-stage">
           <header><span>Held-out</span><p>Outcome</p></header>
-          <div className="verifier-card"><i className="ui-port verifier-port"/><i className="ui-dot verify-dot"/><span>Verified</span></div>
+          <div className="verifier-card"><i className="ui-port verifier-port"/><span>Verified</span></div>
         </section>
         {['01', '02', '03'].map((run) => <span className="motion-token run-token condition-run-token" key={run}><em>{run}</em></span>)}
         <span className="motion-token run-token result-token"><em>result</em></span>
