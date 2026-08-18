@@ -56,6 +56,90 @@ function useCausalTimeline(ref, buildTimeline) {
     };
   }, [buildTimeline, ref]);
 }
+ 
+function usePageEntrance(ref, pageKey) {
+  useLayoutEffect(() => {
+    const root = ref.current;
+    if (!root) return undefined;
+
+    const page = q(root, '.view');
+    if (!page) return undefined;
+    const context = gsap.context(() => {
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const heading = qa(page, '[data-motion="heading"]');
+      const text = qa(page, '[data-motion="text"]');
+      const visual = qa(page, '[data-motion="visual"]');
+      const content = [page, ...heading, ...text, ...visual];
+
+      if (reducedMotion) {
+        gsap.set(content, { clearProps: 'opacity,transform' });
+        return;
+      }
+
+      gsap.set(page, { opacity: 0, y: 6 });
+      gsap.set([...heading, ...text, ...visual], { opacity: 0, y: 5 });
+
+      gsap.timeline({ defaults: { ease: 'power1.out', overwrite: 'auto' } })
+        .to(page, { opacity: 1, y: 0, duration: 0.2 })
+        .to(heading, { opacity: 1, y: 0, duration: 0.2, stagger: 0.035 }, '-=0.08')
+        .to(text, { opacity: 1, y: 0, duration: 0.2, stagger: 0.045 }, '-=0.08')
+        .to(visual, { opacity: 1, y: 0, duration: 0.24, stagger: 0.05 }, '-=0.08');
+    }, root);
+
+    return () => context.revert();
+  }, [pageKey, ref]);
+}
+
+function useMicroInteractions(ref) {
+  useLayoutEffect(() => {
+    const root = ref.current;
+    if (!root || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
+    const selector = '[data-motion-control]';
+    const targetFor = (event) => {
+      const target = event.target instanceof Element ? event.target.closest(selector) : null;
+      return target && root.contains(target) ? target : null;
+    };
+    const enter = (event) => {
+      const target = targetFor(event);
+      if (!target || (event.relatedTarget instanceof Node && target.contains(event.relatedTarget))) return;
+      gsap.to(target, { y: -1, duration: 0.14, ease: 'power1.out', overwrite: 'auto' });
+    };
+    const leave = (event) => {
+      const target = targetFor(event);
+      if (!target || (event.relatedTarget instanceof Node && target.contains(event.relatedTarget))) return;
+      gsap.to(target, { y: 0, duration: 0.16, ease: 'power1.out', overwrite: 'auto' });
+    };
+
+    root.addEventListener('pointerover', enter);
+    root.addEventListener('pointerout', leave);
+    root.addEventListener('focusin', enter);
+    root.addEventListener('focusout', leave);
+    return () => {
+      root.removeEventListener('pointerover', enter);
+      root.removeEventListener('pointerout', leave);
+      root.removeEventListener('focusin', enter);
+      root.removeEventListener('focusout', leave);
+    };
+  }, [ref]);
+}
+
+function useMetricChartEntrance(ref, metricId) {
+  useLayoutEffect(() => {
+    const root = ref.current;
+    if (!root || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
+    const context = gsap.context(() => {
+      const marks = qa(root, '.chart-tick, .mean-line, .range-line, .run-mark, .mean-point, .mean-value, .condition-label, .condition-sublabel');
+      gsap.fromTo(marks, { opacity: 0 }, {
+        opacity: 1,
+        duration: 0.18,
+        stagger: 0.008,
+        ease: 'power1.out',
+        overwrite: 'auto',
+      });
+    }, root);
+    return () => context.revert();
+  }, [metricId, ref]);
+}
 
 function Mark() {
   return <span className="brand-symbol" aria-hidden="true"><b/><i/><i/></span>;
@@ -171,87 +255,76 @@ const STRUCTURE_NODES = [
   { id: 'type', label: 'type', width: 42, height: 23 },
 ];
 const STRUCTURE_EDGES = [['module', 'symbol'], ['symbol', 'call'], ['symbol', 'type']];
-const NAVIGATION_NODES = [
-  { id: 'entry', label: 'entry', width: 44, height: 23 },
-  { id: 'index', label: 'index', width: 44, height: 23 },
-  { id: 'target', label: 'target', width: 48, height: 23, className: 'target' },
-  { id: 'edit', label: 'edit', width: 40, height: 23 },
-  { id: 'branch', label: 'other', width: 44, height: 23, className: 'branch' },
-];
-const NAVIGATION_EDGES = [['entry', 'index'], ['index', 'target'], ['index', 'branch'], ['target', 'edit']];
-const NAVIGATION_ROUTE = ['entry', 'index', 'target', 'edit'];
-
 function MapExperimentFigure() {
   const ref = useRef(null);
 
   useCausalTimeline(ref, (root) => {
     const track = q(root, '.sequence-track');
     const rows = qa(root, '.repository-file');
-    const scans = qa(root, '.generation-scan');
     const generator = q(root, '.generation-card');
     const structureNodes = qa(root, '.structure-node');
     const structureEdges = qa(root, '.structure-edge');
-    const navNodes = qa(root, '.nav-node');
-    const navEdges = qa(root, '.nav-edge');
+    const treeRows = qa(root, '.tree-row');
+    const routeRows = qa(root, '.tree-row[data-route]');
     const sourceToken = q(root, '.source-token');
     const agentToken = q(root, '.agent-token');
     const outcome = q(root, '.outcome-card');
+    const completionTarget = q(root, '.completion-target');
+    const completionMark = q(root, '.completion-mark');
     const generatorPort = q(root, '.generator-output');
     const structureCore = q(root, '[data-node="module"]');
     const outcomePort = q(root, '.outcome-port');
     const sourceStart = point(track, generatorPort);
     const corePoint = point(track, structureCore);
-    const routeNodes = NAVIGATION_ROUTE.map((id) => q(root, `.nav-node[data-node="${id}"]`));
-    const routeEdges = NAVIGATION_ROUTE.slice(0, -1).map((id, index) => q(root, `.nav-edge[data-edge="${id}-${NAVIGATION_ROUTE[index + 1]}"]`));
-    const route = routeNodes.map((node) => point(track, node));
+    const route = routeRows.map((row) => point(track, q(row, '.tree-anchor')));
 
-    gsap.set(rows, { opacity: 0.38, color: '#777777' });
-    gsap.set(scans, { scaleX: 0, transformOrigin: 'left center' });
-    gsap.set(generator, { backgroundColor: '#f1f1f1', color: '#747474' });
+    gsap.set(rows, { opacity: 0.5, color: '#777777', backgroundColor: '#f5f5f5' });
+    gsap.set(generator, { backgroundColor: '#f4f4f4', color: '#626262' });
     gsap.set([...structureNodes, ...structureEdges], { opacity: 0 });
-    gsap.set(navNodes, { opacity: 0.28 });
-    gsap.set(navEdges, { opacity: 0.22 });
+    gsap.set(treeRows, { opacity: 0.38, backgroundColor: 'transparent', color: '#777777' });
     gsap.set([sourceToken, agentToken], { opacity: 0 });
     gsap.set(sourceToken, place(sourceToken, sourceStart));
     gsap.set(agentToken, place(agentToken, corePoint));
-    gsap.set(outcome, { opacity: 0.22, backgroundColor: '#f1f1f1', color: '#777777' });
+    gsap.set(outcome, { opacity: 0.58, backgroundColor: '#f4f4f4', color: '#5f5f5f' });
+    gsap.set([completionTarget, completionMark], { opacity: 0.34 });
 
     const tl = gsap.timeline({ repeat: -1, repeatDelay: 1.4, defaults: { ease: 'power1.inOut' } });
     rows.forEach((row, index) => {
-      tl.to(row, { opacity: 1, color: '#151515', duration: 0.18 })
-        .to(scans[index], { scaleX: 1, duration: 0.22 });
+      tl.to(row, { opacity: 1, color: '#151515', backgroundColor: '#ededed', duration: 0.2 })
+        .to(row, { backgroundColor: '#f5f5f5', duration: 0.12 });
     });
-    tl.to(generator, { backgroundColor: '#151515', color: '#ffffff', duration: 0.24 })
+    tl.to(generator, { backgroundColor: '#dedede', color: '#202020', duration: 0.24 })
       .set(sourceToken, { opacity: 1 })
       .to(sourceToken, { ...place(sourceToken, corePoint), duration: 0.72 })
       .set(sourceToken, { opacity: 0 })
       .to(structureNodes, { opacity: 1, duration: 0.16, stagger: 0.07 })
       .to(structureEdges, { opacity: 1, duration: 0.18, stagger: 0.07 })
-      .to(navNodes, { opacity: 0.62, duration: 0.18, stagger: 0.05 })
-      .to(navEdges, { opacity: 0.48, duration: 0.18, stagger: 0.05 })
+      .to(treeRows, { opacity: 0.65, duration: 0.18, stagger: 0.035 })
       .set(agentToken, { ...place(agentToken, route[0]), opacity: 1 });
 
     route.forEach((target, index) => {
       if (index === 0) {
-        tl.to(routeNodes[index], { opacity: 1, duration: 0.12 });
+        tl.to(routeRows[index], { opacity: 1, backgroundColor: '#ededed', color: '#151515', duration: 0.14 });
         return;
       }
       tl.to(agentToken, { ...place(agentToken, target), duration: 0.46, ease: 'none' })
-        .to(routeEdges[index - 1], { opacity: 1, stroke: '#151515', duration: 0.12 }, '<')
-        .to(routeNodes[index], { opacity: 1, duration: 0.12 }, '<');
+        .to(routeRows[index - 1], { backgroundColor: 'transparent', duration: 0.12 }, '<')
+        .to(routeRows[index], { opacity: 1, backgroundColor: '#ededed', color: '#151515', duration: 0.14 }, '<');
     });
 
     tl.to(agentToken, { ...place(agentToken, point(track, outcomePort)), duration: 0.62 })
       .set(agentToken, { opacity: 0 })
-      .to(outcome, { opacity: 1, backgroundColor: '#151515', color: '#ffffff', duration: 0.28 })
+      .to(routeRows[routeRows.length - 1], { backgroundColor: 'transparent', duration: 0.12 }, '<')
+      .to(completionTarget, { opacity: 1, duration: 0.18 })
+      .to(outcome, { opacity: 1, backgroundColor: '#dedede', color: '#202020', duration: 0.24 })
+      .to(completionMark, { opacity: 1, duration: 0.16 }, '<')
       .to({}, { duration: 1.3 })
-      .to(outcome, { opacity: 0.22, backgroundColor: '#f1f1f1', color: '#777777', duration: 0.2 })
+      .to(outcome, { opacity: 0.58, backgroundColor: '#f4f4f4', color: '#5f5f5f', duration: 0.2 })
+      .set([completionTarget, completionMark], { opacity: 0.34 })
       .set([...structureNodes, ...structureEdges], { opacity: 0 })
-      .set(navNodes, { opacity: 0.28 })
-      .set(navEdges, { opacity: 0.22, stroke: '#9c9c9c' })
-      .set(scans, { scaleX: 0 })
-      .set(generator, { backgroundColor: '#f1f1f1', color: '#747474' })
-      .set(rows, { opacity: 0.38, color: '#777777' });
+      .set(treeRows, { opacity: 0.38, backgroundColor: 'transparent', color: '#777777' })
+      .set(generator, { backgroundColor: '#f4f4f4', color: '#626262' })
+      .set(rows, { opacity: 0.5, color: '#777777', backgroundColor: '#f5f5f5' });
   });
 
   return (
@@ -261,7 +334,7 @@ function MapExperimentFigure() {
         <section className="sequence-stage repository-stage">
           <header><span>01 · source → artifact</span><p>Programmatic generation</p></header>
           <div className="repository-files">
-            {FILES.map((file) => <span className="repository-file" key={file}><code>{file}</code><i className="generation-scan"/></span>)}
+            {FILES.map((file) => <span className="repository-file" key={file}><code>{file}</code></span>)}
           </div>
           <div className="generation-card"><span>deterministic build</span><i className="ui-port generator-output"/></div>
         </section>
@@ -276,13 +349,21 @@ function MapExperimentFigure() {
         <section className="sequence-stage navigation-stage">
           <header><span>03 · agent traversal</span><p>Navigation</p></header>
           <div className="navigation-map">
-            <RoutedGraph className="nav" nodes={NAVIGATION_NODES} edges={NAVIGATION_EDGES} width={176} height={136} rankdir="LR" ranksep={24} nodesep={18} labelled/>
+            <div className="repository-tree">
+              <span className="tree-row tree-root" data-route><i className="tree-anchor"/><code>mapbench/</code></span>
+              <span className="tree-row depth-1" data-route><i className="tree-guide">└─</i><i className="tree-anchor"/><code>src/</code></span>
+              <span className="tree-row depth-2" data-route><i className="tree-guide">└─</i><i className="tree-anchor"/><code>workspace.ts</code></span>
+              <span className="tree-row tree-symbol depth-3" data-route><i className="tree-guide">└─</i><i className="tree-anchor"/><code>resolveRoot()</code></span>
+            </div>
           </div>
         </section>
         <i className="track-line"/>
         <section className="sequence-stage outcome-stage">
           <header><span>04 · result</span><p>Outcome</p></header>
-          <div className="outcome-card"><i className="ui-port outcome-port"/><strong>Task completed</strong><span>informed traversal</span></div>
+          <div className="completion-trace">
+            <div className="completion-target"><code>workspace.ts</code><span>resolveRoot()</span></div>
+            <div className="outcome-card"><i className="ui-port outcome-port"/><i className="completion-mark"/><div><strong>Task completed</strong><span>target verified</span></div></div>
+          </div>
         </section>
         <span className="motion-token source-token"><em>source</em></span>
         <span className="motion-token agent-token"><em>agent</em></span>
@@ -298,7 +379,12 @@ function MapBenchView({ onNavigate }) {
         id="mapbench"
         title="MapBench"
         statement="Do deterministic structural artifacts help agents traverse unfamiliar codebases more efficiently?"
-        action={<button className="primary-pill text-action" onClick={() => onNavigate('benchmark')}>See the benchmark <span aria-hidden="true">→</span></button>}
+        action={(
+          <div className="hero-actions">
+            <button className="primary-pill" onClick={() => onNavigate('benchmark')}>See how the benchmark works <span aria-hidden="true">→</span></button>
+            <button className="secondary-action" onClick={() => onNavigate('experiments')}>View experiment results</button>
+          </div>
+        )}
       >
         <p>MapBench compares agent performance on the same codebase with and without deterministic structural representations.</p>
         <p>The experiment tests whether these artifacts accelerate repository understanding and improve software engineering task performance.</p>
@@ -348,10 +434,10 @@ function CartographFigure() {
 
     gsap.set(files, { opacity: 0.38, color: '#777777' });
     gsap.set([...fileTokens, irToken], { opacity: 0 });
-    gsap.set(treeSitter, { backgroundColor: '#f1f1f1', color: '#686868' });
-    gsap.set(parserPhases, { opacity: 0.32, backgroundColor: '#dddddd' });
+    gsap.set(treeSitter, { backgroundColor: '#f4f4f4', color: '#626262' });
+    gsap.set(parserPhases, { opacity: 0.28 });
     gsap.set([...irNodes, ...irEdges], { opacity: 0 });
-    gsap.set(projections, { opacity: 0.26, backgroundColor: '#f1f1f1', color: '#777777' });
+    gsap.set(projections, { opacity: 0.48, backgroundColor: '#f4f4f4', color: '#666666' });
     gsap.set(projectionTokens, { opacity: 0 });
 
     const tl = gsap.timeline({ repeat: -1, repeatDelay: 1.4, defaults: { ease: 'power1.inOut' } });
@@ -364,9 +450,8 @@ function CartographFigure() {
         .set(fileTokens[index], { opacity: 0 });
     });
 
-    tl.to(treeSitter, { backgroundColor: '#151515', color: '#ffffff', duration: 0.24 })
-      .to(parserPhases[0], { opacity: 1, backgroundColor: '#ffffff', duration: 0.2 })
-      .to(parserPhases[1], { opacity: 1, backgroundColor: '#ffffff', duration: 0.2 })
+    tl.to(treeSitter, { backgroundColor: '#ededed', color: '#202020', duration: 0.24 })
+      .to(parserPhases, { opacity: 1, duration: 0.16, stagger: 0.09 })
       .set(irToken, { ...place(irToken, point(track, parserOutput)), opacity: 1 })
       .to(irToken, { ...place(irToken, point(track, irEntry)), duration: 0.62 })
       .set(irToken, { opacity: 0 })
@@ -380,7 +465,7 @@ function CartographFigure() {
       tl.set(projectionTokens[index], { opacity: 1 })
         .to(projectionTokens[index], { ...place(projectionTokens[index], end), duration: 0.58 })
         .set(projectionTokens[index], { opacity: 0 })
-        .to(projection, { opacity: 1, backgroundColor: '#151515', color: '#ffffff', duration: 0.18 });
+        .to(projection, { opacity: 1, backgroundColor: '#dedede', color: '#202020', duration: 0.18 });
     });
 
     tl.to({}, { duration: 1.15 })
@@ -388,10 +473,10 @@ function CartographFigure() {
       .set(irToken, { opacity: 0 })
       .set(projectionTokens, { opacity: 0 })
       .set(files, { opacity: 0.38, color: '#777777' })
-      .set(treeSitter, { backgroundColor: '#f1f1f1', color: '#686868' })
-      .set(parserPhases, { opacity: 0.32, backgroundColor: '#dddddd' })
+      .set(treeSitter, { backgroundColor: '#f4f4f4', color: '#626262' })
+      .set(parserPhases, { opacity: 0.28 })
       .set([...irNodes, ...irEdges], { opacity: 0 })
-      .set(projections, { opacity: 0.26, backgroundColor: '#f1f1f1', color: '#777777' });
+      .set(projections, { opacity: 0.48, backgroundColor: '#f4f4f4', color: '#666666' });
   });
 
   return (
@@ -407,7 +492,16 @@ function CartographFigure() {
         <i className="track-line"/>
         <section className="sequence-stage parser-stage">
           <header><span>02 · grammar-aware</span><p>Parsing</p></header>
-          <div className="tree-sitter-card"><i className="ui-port parser-input"/><i className="ui-port parser-output"/><strong>Tree-sitter</strong><span>parse tree → extract</span><div className="parser-phases"><i className="parser-phase"/><i className="parser-phase"/></div></div>
+          <div className="tree-sitter-card">
+            <i className="ui-port parser-input"/><i className="ui-port parser-output"/>
+            <strong>Tree-sitter</strong>
+            <div className="parser-pipeline">
+              <div className="parser-source" aria-label="Source"><i className="parser-phase"/><i className="parser-phase"/><i className="parser-phase"/></div>
+              <span className="parser-action">parse</span>
+              <div className="parser-ast" aria-label="Abstract syntax tree"><span className="parser-phase">program</span><span className="parser-phase">function</span><span className="parser-phase">call</span></div>
+            </div>
+            <span>AST → symbols</span>
+          </div>
         </section>
         <i className="track-line parser-to-ir"/>
         <section className="sequence-stage ir-stage">
@@ -456,53 +550,52 @@ function BenchmarkFigure() {
     const cartograph = q(root, '.benchmark-cartograph-card');
     const artifacts = qa(root, '.benchmark-artifact');
     const conditions = qa(root, '.condition-row');
-    const overlays = qa(root, '.condition-overlay');
     const slots = qa(root, '.run-slot');
     const tokens = qa(root, '.condition-run-token');
     const resultToken = q(root, '.result-token');
     const measures = qa(root, '.measure-row');
     const measuresPort = q(root, '.measures-port');
 
-    gsap.set(cartograph, { backgroundColor: '#f1f1f1', color: '#777777' });
+    gsap.set(cartograph, { backgroundColor: '#f4f4f4', color: '#626262' });
     gsap.set(artifacts, { opacity: 0.25, color: '#777777' });
-    gsap.set(conditions, { opacity: 0.48, color: '#6f6f6f' });
-    gsap.set(overlays, { opacity: 0 });
+    gsap.set(conditions, { opacity: 0.58, backgroundColor: '#f4f4f4', color: '#686868' });
     gsap.set(slots, { opacity: 0.32, backgroundColor: '#f1f1f1', color: '#777777' });
     gsap.set([...tokens, resultToken], { opacity: 0 });
-    gsap.set(measures, { opacity: 0.28, backgroundColor: '#f1f1f1', color: '#777777' });
+    gsap.set(measures, { opacity: 0.5, backgroundColor: '#f4f4f4', color: '#686868' });
 
     const tl = gsap.timeline({ repeat: -1, repeatDelay: 1.4, defaults: { ease: 'power1.inOut' } });
-    tl.to(cartograph, { backgroundColor: '#151515', color: '#ffffff', duration: 0.24 })
+    tl.to(cartograph, { backgroundColor: '#dedede', color: '#202020', duration: 0.24 })
       .to(artifacts, { opacity: 1, color: '#151515', duration: 0.17, stagger: 0.12 });
 
     conditions.forEach((condition) => {
-      const overlay = q(condition, '.condition-overlay');
       const source = point(track, q(condition, '.condition-port'));
-      tl.to(condition, { opacity: 1, color: '#ffffff', duration: 0.2 })
-        .to(overlay, { opacity: 1, duration: 0.2 }, '<');
+      const runBurst = gsap.timeline();
+      tl.to(condition, { opacity: 1, backgroundColor: '#dedede', color: '#202020', duration: 0.16 });
 
       tokens.forEach((token, index) => {
         const destination = point(track, q(slots[index], '.run-target'));
-        tl.set(token, { ...place(token, source), opacity: 1 })
-          .to(token, { ...place(token, destination), duration: 0.42, ease: 'none' })
-          .set(token, { opacity: 0 })
-          .to(slots[index], { opacity: 1, backgroundColor: '#dedede', color: '#151515', duration: 0.13 });
+        const launch = index * 0.08;
+        runBurst
+          .set(token, { ...place(token, source), opacity: 1 }, launch)
+          .to(token, { ...place(token, destination), duration: 0.24, ease: 'none' }, launch)
+          .set(token, { opacity: 0 }, launch + 0.24)
+          .to(slots[index], { opacity: 1, backgroundColor: '#dedede', color: '#202020', duration: 0.1 }, launch + 0.16);
       });
 
-      tl.to({}, { duration: 0.24 })
-        .to(overlay, { opacity: 0, duration: 0.16 })
-        .to(condition, { opacity: 0.48, color: '#6f6f6f', duration: 0.16 }, '<')
-        .set(slots, { opacity: 0.24, backgroundColor: '#f1f1f1', color: '#777777' });
+      tl.add(runBurst)
+        .to({}, { duration: 0.08 })
+        .to(condition, { opacity: 0.58, backgroundColor: '#f4f4f4', color: '#686868', duration: 0.12 })
+        .set(slots, { opacity: 0.32, backgroundColor: '#f1f1f1', color: '#777777' });
     });
 
     tl.set(resultToken, { ...place(resultToken, point(track, q(slots[2], '.run-target'))), opacity: 1 })
       .to(resultToken, { ...place(resultToken, point(track, measuresPort)), duration: 0.68, ease: 'none' })
       .set(resultToken, { opacity: 0 })
-      .to(measures, { opacity: 1, backgroundColor: '#151515', color: '#ffffff', duration: 0.16, stagger: 0.12 })
+      .to(measures, { opacity: 1, backgroundColor: '#dedede', color: '#202020', duration: 0.13, stagger: 0.08 })
       .to({}, { duration: 1.35 })
-      .set(cartograph, { backgroundColor: '#f1f1f1', color: '#777777' })
+      .set(cartograph, { backgroundColor: '#f4f4f4', color: '#626262' })
       .set(artifacts, { opacity: 0.25, color: '#777777' })
-      .set(measures, { opacity: 0.28, backgroundColor: '#f1f1f1', color: '#777777' });
+      .set(measures, { opacity: 0.5, backgroundColor: '#f4f4f4', color: '#686868' });
   });
 
   return (
@@ -519,7 +612,7 @@ function BenchmarkFigure() {
         <i className="benchmark-line"/>
         <section className="condition-list">
           <header><span>02 · variable</span><p>Representation</p></header>
-          {CONDITIONS.map((condition) => <div className="condition-row" key={condition}><i className="condition-overlay"/><span>{condition}</span><i className="ui-port condition-port"/></div>)}
+          {CONDITIONS.map((condition) => <div className="condition-row" key={condition}><span>{condition}</span><i className="ui-port condition-port"/></div>)}
         </section>
         <i className="benchmark-line"/>
         <section className="run-bank">
@@ -533,7 +626,7 @@ function BenchmarkFigure() {
         <section className="measure-stage">
           <header><span>04 · analyze</span><p>Measures</p></header>
           <div className="measure-list">
-            {BENCHMARK_MEASURES.map((measure, index) => <span className="measure-row" key={measure}>{index === 0 && <i className="ui-port measures-port"/>}{measure}</span>)}
+            {BENCHMARK_MEASURES.map((measure, index) => <span className="measure-row" key={measure}><i className={'ui-port measure-dot ' + (index === 0 ? 'measures-port' : '')}/>{measure}</span>)}
           </div>
         </section>
         {['01', '02', '03'].map((run) => <span className="motion-token run-token condition-run-token" key={run}><em>{run}</em></span>)}
@@ -549,7 +642,7 @@ function BenchmarkView() {
       <ResearchCopy id="benchmark" title="Benchmark" statement="Measure how structural representation changes agent behavior under controlled conditions.">
         <p>Cartograph generates the artifacts used to compare regular code, each single-artifact condition, and the all-artifact condition.</p>
         <p>The model, task, tools, repository, and environment remain fixed across repeated runs; only the representation changes.</p>
-        <div className="measure-summary"><span>Primary measures</span><strong>Tokens</strong><strong>Runtime</strong><strong>Cost</strong><strong>Navigation behavior</strong></div>
+        <p className="measure-summary">Tokens · Runtime · Cost · Navigation behavior</p>
       </ResearchCopy>
       <BenchmarkFigure/>
     </ViewFrame>
@@ -618,7 +711,7 @@ const EXPERIMENT_RESULTS = [
   },
   {
     id: 'outline-only',
-    label: 'Architecture map only',
+    label: 'Architecture',
     runs: [
       mockRun({ condition: 'outline-only', run: 1, score: .83, passed: true, durationMs: 522000, tokens: [96800, 34400, 11800, 5100], cost: .77, commands: 28, sourceFiles: 13, outlineFiles: 1, firstEditMs: 143000, filesChanged: ['src/runner.ts', 'src/verify.ts', 'test/runner.test.ts'] }),
       mockRun({ condition: 'outline-only', run: 2, score: .88, passed: true, durationMs: 487000, tokens: [91200, 32800, 10900, 4800], cost: .71, commands: 26, sourceFiles: 12, outlineFiles: 1, firstEditMs: 126000, filesChanged: ['src/runner.ts', 'src/workspace.ts', 'src/verify.ts', 'test/runner.test.ts'] }),
@@ -627,7 +720,7 @@ const EXPERIMENT_RESULTS = [
   },
   {
     id: 'callgraph-only',
-    label: 'Call graph only',
+    label: 'Call graph',
     runs: [
       mockRun({ condition: 'callgraph-only', run: 1, score: .76, passed: true, durationMs: 536000, tokens: [99400, 36200, 12100, 5400], cost: .80, commands: 31, sourceFiles: 14, outlineFiles: 1, firstEditMs: 158000, filesChanged: ['src/runner.ts', 'src/workspace.ts', 'test/runner.test.ts'] }),
       mockRun({ condition: 'callgraph-only', run: 2, score: .81, passed: true, durationMs: 501000, tokens: [93700, 33700, 11400, 4900], cost: .74, commands: 29, sourceFiles: 12, outlineFiles: 1, firstEditMs: 139000, filesChanged: ['src/runner.ts', 'src/verify.ts', 'test/runner.test.ts', 'package.json'] }),
@@ -636,7 +729,7 @@ const EXPERIMENT_RESULTS = [
   },
   {
     id: 'skeleton-only',
-    label: 'Skeleton only',
+    label: 'Skeleton',
     runs: [
       mockRun({ condition: 'skeleton-only', run: 1, score: .86, passed: true, durationMs: 468000, tokens: [87200, 31600, 10400, 4600], cost: .67, commands: 25, sourceFiles: 11, outlineFiles: 7, firstEditMs: 112000, filesChanged: ['src/runner.ts', 'src/workspace.ts', 'src/verify.ts', 'test/runner.test.ts'] }),
       mockRun({ condition: 'skeleton-only', run: 2, score: .82, passed: true, durationMs: 492000, tokens: [90800, 32900, 11100, 4900], cost: .71, commands: 27, sourceFiles: 12, outlineFiles: 6, firstEditMs: 124000, filesChanged: ['src/runner.ts', 'src/verify.ts', 'test/runner.test.ts'] }),
@@ -645,7 +738,7 @@ const EXPERIMENT_RESULTS = [
   },
   {
     id: 'all-outline-aids',
-    label: 'All three artifacts',
+    label: 'All artifacts',
     runs: [
       mockRun({ condition: 'all-outline-aids', run: 1, score: .91, passed: true, durationMs: 429000, tokens: [79800, 29600, 9400, 4000], cost: .60, commands: 22, sourceFiles: 9, outlineFiles: 9, firstEditMs: 88000, filesChanged: ['src/runner.ts', 'src/workspace.ts', 'src/verify.ts', 'test/runner.test.ts'] }),
       mockRun({ condition: 'all-outline-aids', run: 2, score: .94, passed: true, durationMs: 407000, tokens: [76100, 28200, 8900, 3800], cost: .57, commands: 21, sourceFiles: 8, outlineFiles: 10, firstEditMs: 79000, filesChanged: ['src/runner.ts', 'src/workspace.ts', 'src/verify.ts', 'test/runner.test.ts'] }),
@@ -654,92 +747,198 @@ const EXPERIMENT_RESULTS = [
   },
 ];
 
+const EXPERIMENT_DISPLAY_ORDER = ['regular-code', 'outline-only', 'skeleton-only', 'callgraph-only', 'all-outline-aids'];
+const ORDERED_EXPERIMENT_RESULTS = EXPERIMENT_DISPLAY_ORDER.map((id) => EXPERIMENT_RESULTS.find((condition) => condition.id === id));
+
 const mean = (values) => values.reduce((total, value) => total + value, 0) / values.length;
 const formatDuration = (ms) => `${Math.floor(ms / 60000)}m ${String(Math.round((ms % 60000) / 1000)).padStart(2, '0')}s`;
 const formatTokens = (value) => `${(value / 1000).toFixed(1)}k`;
 const formatRun = (run) => String(run).padStart(2, '0');
 
-function CheckStatus({ label, value }) {
-  return <span className={`check-status ${value.status}`}><i aria-hidden="true"/><span>{label}</span> {value.status}</span>;
-}
+const EXPERIMENT_METRICS = [
+  {
+    id: 'score',
+    label: 'Score',
+    axisLabel: 'Hidden grader score',
+    detailLabel: 'Grader score',
+    domain: [0, 100],
+    ticks: [0, 25, 50, 75, 100],
+    value: (run) => run.hiddenGrader.score / run.hiddenGrader.maxScore * 100,
+    format: (value) => `${Math.round(value)}%`,
+  },
+  {
+    id: 'tokens',
+    label: 'Tokens',
+    axisLabel: 'Total tokens',
+    detailLabel: 'Total tokens',
+    domain: [0, 160000],
+    ticks: [0, 40000, 80000, 120000, 160000],
+    value: (run) => run.tokens.total,
+    format: (value) => value === 0 ? '0' : `${Math.round(value / 1000)}k`,
+  },
+  {
+    id: 'runtime',
+    label: 'Runtime',
+    axisLabel: 'Runtime',
+    detailLabel: 'Runtime',
+    domain: [0, 960000],
+    ticks: [0, 240000, 480000, 720000, 960000],
+    value: (run) => run.durationMs,
+    format: (value) => `${Math.round(value / 60000)}m`,
+  },
+  {
+    id: 'cost',
+    label: 'Cost',
+    axisLabel: 'Estimated cost per run',
+    detailLabel: 'Estimated cost',
+    domain: [0, 1.2],
+    ticks: [0, .3, .6, .9, 1.2],
+    value: (run) => run.estimatedCostUsd,
+    format: (value) => `$${value.toFixed(value === 0 ? 0 : 2)}`,
+  },
+  {
+    id: 'navigation',
+    label: 'Navigation',
+    axisLabel: 'Unique source files explored',
+    detailLabel: 'Source files explored',
+    domain: [0, 24],
+    ticks: [0, 6, 12, 18, 24],
+    value: (run) => run.navigation.uniqueSourceFiles,
+    format: (value) => `${Math.round(value)}`,
+  },
+];
 
-function RunDetail({ condition, run }) {
-  const score = run.hiddenGrader.score / run.hiddenGrader.maxScore;
-  const firstEdit = run.editNavigation.firstSourceEditObserved ? formatDuration(run.editNavigation.elapsedMs) : `>${formatDuration(run.editNavigation.censoredAtMs)}`;
+function ObservationDetail({ observation, metric }) {
+  if (!observation) {
+    return null;
+  }
+
+  const { condition, run } = observation;
   return (
-    <section className="run-detail" aria-live="polite" aria-label={`${condition.label}, run ${formatRun(run.run)} details`}>
-      <header className="run-detail-header">
-        <div><span>Selected run</span><h2>{condition.label} <b>/ {formatRun(run.run)}</b></h2></div>
-        <span className={`run-status ${run.status}`}>{run.status}</span>
-      </header>
-      <dl className="run-detail-grid">
-        <div><dt>Hidden grader</dt><dd>{score.toFixed(2)} <small>/ 1.00</small></dd></div>
-        <div><dt>Duration</dt><dd>{formatDuration(run.durationMs)}</dd></div>
-        <div className="token-detail"><dt>Tokens · input / cached / output / reasoning</dt><dd>{run.tokens.input.toLocaleString()} <i>/</i> {run.tokens.cachedInput.toLocaleString()} <i>/</i> {run.tokens.output.toLocaleString()} <i>/</i> {run.tokens.reasoning.toLocaleString()}</dd></div>
-        <div><dt>Estimated cost</dt><dd>${run.estimatedCostUsd.toFixed(2)}</dd></div>
-        <div><dt>Commands</dt><dd>{run.commandCount} <small>· {run.failedCommandCount} failed</small></dd></div>
-        <div><dt>Files accessed</dt><dd>{run.navigation.uniqueSourceFiles} source <small>· {run.navigation.uniqueOutlineFiles} outline</small></dd></div>
-        <div><dt>Time to first edit</dt><dd>{firstEdit}</dd></div>
-        <div><dt>Files changed</dt><dd>{run.fileCount} <small title={run.filesChanged.join(', ')}>· {run.filesChanged.join(', ')}</small></dd></div>
-        <div className="check-detail"><dt>Verification checks</dt><dd><CheckStatus label="regression" value={run.checks.regression}/><CheckStatus label="typecheck" value={run.checks.typecheck}/><CheckStatus label="build" value={run.checks.build}/></dd></div>
+    <aside className="observation-detail" aria-live="polite" aria-label={`${condition.label}, run ${formatRun(run.run)} details`}>
+      <div className="observation-title-row">
+        <h2>{condition.label} <span>/ {formatRun(run.run)}</span></h2>
+        <span className={`observation-status ${run.status}`}>{run.status}</span>
+      </div>
+      <div className="observation-primary">
+        <span>{metric.detailLabel}</span>
+        <strong>{metric.format(metric.value(run))}</strong>
+      </div>
+      <dl className="observation-grid">
+        <div><dt>Tokens</dt><dd>{formatTokens(run.tokens.total)}</dd></div>
+        <div><dt>Runtime</dt><dd>{formatDuration(run.durationMs)}</dd></div>
+        <div><dt>Source files</dt><dd>{run.navigation.uniqueSourceFiles}</dd></div>
+        <div><dt>Commands</dt><dd>{run.commandCount}</dd></div>
       </dl>
-    </section>
+    </aside>
   );
 }
 
 function ExperimentsFigure() {
-  const [selection, setSelection] = useState({ conditionId: 'all-outline-aids', run: 2 });
-  const selectedCondition = EXPERIMENT_RESULTS.find((condition) => condition.id === selection.conditionId);
-  const selectedRun = selectedCondition.runs.find((run) => run.run === selection.run);
+  const [metricId, setMetricId] = useState('score');
+  const [hovered, setHovered] = useState(null);
+  const [pinned, setPinned] = useState(() => ({ condition: ORDERED_EXPERIMENT_RESULTS[0], run: ORDERED_EXPERIMENT_RESULTS[0].runs[0] }));
+  const metric = EXPERIMENT_METRICS.find((item) => item.id === metricId);
+  const activeObservation = hovered || pinned;
+  const width = 980;
+  const height = 416;
+  const plot = { left: 72, right: 24, top: 28, bottom: 64 };
+  const plotWidth = width - plot.left - plot.right;
+  const plotHeight = height - plot.top - plot.bottom;
+  const xForCondition = (index) => plot.left + plotWidth * ((index + .5) / ORDERED_EXPERIMENT_RESULTS.length);
+  const yForValue = (value) => plot.top + plotHeight * (1 - (value - metric.domain[0]) / (metric.domain[1] - metric.domain[0]));
+  const meanPoints = ORDERED_EXPERIMENT_RESULTS.map((condition, index) => ({
+    x: xForCondition(index),
+    y: yForValue(mean(condition.runs.map(metric.value))),
+  }));
+  const meanPath = meanPoints.map((point, index) => `${index ? 'L' : 'M'} ${point.x} ${point.y}`).join(' ');
+
+  const observationKey = (condition, run) => `${condition.id}-${run.run}`;
+  const isActive = (condition, run) => activeObservation && observationKey(condition, run) === observationKey(activeObservation.condition, activeObservation.run);
+  const togglePinned = (condition, run) => {
+    setPinned({ condition, run });
+  };
 
   return (
     <div className="experiment-results">
-      <div className="experiment-meta">
-        <span className="preview-label">Mock data / experiment preview</span>
-        <span>n = 3 per condition</span>
+      <div className="experiment-toolbar">
+        <div className="metric-tabs" role="group" aria-label="Experiment metric">
+          {EXPERIMENT_METRICS.map((item) => (
+            <button key={item.id} className={metricId === item.id ? 'active' : ''} aria-pressed={metricId === item.id} onClick={() => setMetricId(item.id)}>{item.label}</button>
+          ))}
+        </div>
+        <div className="chart-key" aria-label="Chart key">
+          <span><i className="key-mean"/>Mean</span>
+          <span><i className="key-run"/>Run</span>
+          <span><i className="key-range"/>Range</span>
+        </div>
       </div>
-      <div className="results-table-scroll">
-        <table className="results-table">
-          <caption className="sr-only">Mock MapBench results, summarized by repository representation.</caption>
-          <thead>
-            <tr>
-              <th scope="col">Condition</th>
-              <th scope="col">Runs <small>01 / 02 / 03</small></th>
-              <th scope="col">Mean grader<br/>score</th>
-              <th scope="col">Success<br/>rate</th>
-              <th scope="col">Mean<br/>duration</th>
-              <th scope="col">Mean total<br/>tokens</th>
-              <th scope="col">Mean<br/>commands</th>
-              <th scope="col">Mean files<br/>changed</th>
-            </tr>
-          </thead>
-          <tbody>
-            {EXPERIMENT_RESULTS.map((condition) => {
-              const successes = condition.runs.filter((run) => run.hiddenGrader.passed).length;
-              return (
-                <tr key={condition.id} className={selection.conditionId === condition.id ? 'selected-condition' : ''}>
-                  <th scope="row">{condition.label}</th>
-                  <td>
-                    <div className="run-selector">
-                      {condition.runs.map((run) => {
-                        const active = selection.conditionId === condition.id && selection.run === run.run;
-                        return <button key={run.run} className={`${active ? 'active' : ''} ${run.status}`} aria-pressed={active} aria-label={`${condition.label}, run ${formatRun(run.run)}, ${run.status}`} onMouseEnter={() => setSelection({ conditionId: condition.id, run: run.run })} onFocus={() => setSelection({ conditionId: condition.id, run: run.run })} onClick={() => setSelection({ conditionId: condition.id, run: run.run })}><i aria-hidden="true"/>{formatRun(run.run)}</button>;
-                      })}
-                    </div>
-                  </td>
-                  <td>{mean(condition.runs.map((run) => run.hiddenGrader.score / run.hiddenGrader.maxScore)).toFixed(2)}</td>
-                  <td>{Math.round(successes / condition.runs.length * 100)}% <small>{successes}/{condition.runs.length}</small></td>
-                  <td>{formatDuration(mean(condition.runs.map((run) => run.durationMs)))}</td>
-                  <td>{formatTokens(mean(condition.runs.map((run) => run.tokens.total)))}</td>
-                  <td>{mean(condition.runs.map((run) => run.commandCount)).toFixed(1)}</td>
-                  <td>{mean(condition.runs.map((run) => run.fileCount)).toFixed(1)}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <div className="experiment-chart-layout">
+        <section className="chart-panel" aria-labelledby="chart-title">
+          <div className="chart-heading">
+            <h2 id="chart-title">{metric.axisLabel}</h2>
+          </div>
+          <div className="experiment-chart-scroll">
+            <svg className="experiment-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${metric.axisLabel} by repository representation condition. Each condition has three individual runs and a mean.`}>
+              {metric.ticks.map((tick) => {
+                const y = yForValue(tick);
+                return (
+                  <g className="chart-tick" key={tick}>
+                    <line x1={plot.left} x2={width - plot.right} y1={y} y2={y}/>
+                    <text x={plot.left - 16} y={y} textAnchor="end" dominantBaseline="central">{metric.format(tick)}</text>
+                  </g>
+                );
+              })}
+              <path className="mean-line" d={meanPath}/>
+              {ORDERED_EXPERIMENT_RESULTS.map((condition, index) => {
+                const x = xForCondition(index);
+                const values = condition.runs.map(metric.value);
+                const meanValue = mean(values);
+                return (
+                  <g className="condition-marks" key={condition.id}>
+                    <line className="range-line" x1={x} x2={x} y1={yForValue(Math.max(...values))} y2={yForValue(Math.min(...values))}/>
+                    {condition.runs.map((run, runIndex) => {
+                      const pointX = x + (runIndex - 1) * 14;
+                      const pointY = yForValue(metric.value(run));
+                      const active = isActive(condition, run);
+                      return (
+                        <g
+                          key={run.run}
+                          className={`run-mark ${active ? 'active' : ''} ${run.status}`}
+                          role="button"
+                          tabIndex="0"
+                          aria-label={`${condition.label}, run ${formatRun(run.run)}: ${metric.format(metric.value(run))}. ${run.status}`}
+                          aria-pressed={pinned && observationKey(condition, run) === observationKey(pinned.condition, pinned.run)}
+                          onMouseEnter={() => setHovered({ condition, run })}
+                          onMouseLeave={() => setHovered(null)}
+                          onFocus={() => setHovered({ condition, run })}
+                          onBlur={() => setHovered(null)}
+                          onClick={() => togglePinned(condition, run)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              togglePinned(condition, run);
+                            }
+                          }}
+                        >
+                          <circle className="run-hit-area" cx={pointX} cy={pointY} r="14"/>
+                          <circle className="run-point" cx={pointX} cy={pointY} r={active ? 5.5 : 4}/>
+                          {run.status === 'timeout' && <path className="timeout-mark" d={`M ${pointX - 3} ${pointY - 3} L ${pointX + 3} ${pointY + 3} M ${pointX + 3} ${pointY - 3} L ${pointX - 3} ${pointY + 3}`}/>}
+                        </g>
+                      );
+                    })}
+                    <rect className="mean-point" x={x - 4.5} y={yForValue(meanValue) - 4.5} width="9" height="9" transform={`rotate(45 ${x} ${yForValue(meanValue)})`}/>
+                    <text className="mean-value" x={x} y={yForValue(meanValue) - 16} textAnchor="middle">{metric.format(meanValue)}</text>
+                    <text className="condition-label" x={x} y={height - 34} textAnchor="middle">{condition.label}</text>
+                    <text className="condition-sublabel" x={x} y={height - 17} textAnchor="middle">n = 3</text>
+                  </g>
+                );
+              })}
+            </svg>
+          </div>
+        </section>
+        <ObservationDetail observation={activeObservation} metric={metric}/>
       </div>
-      <RunDetail condition={selectedCondition} run={selectedRun}/>
     </div>
   );
 }
@@ -749,7 +948,7 @@ function ExperimentsView() {
     <ViewFrame id="experiments" className="experiments-view">
       <div className="experiments-heading">
         <h1 id="experiments-title">Experiments</h1>
-        <p>Per-run results across controlled repository representations.</p>
+        <p>Controlled runs across repository representations.</p>
       </div>
       <ExperimentsFigure/>
     </ViewFrame>
