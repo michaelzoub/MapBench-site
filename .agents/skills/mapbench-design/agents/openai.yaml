@@ -1,0 +1,4 @@
+interface:
+  display_name: "MapBench Design"
+  short_description: "Preserve MapBench’s precise technical aesthetic"
+  default_prompt: "Use $mapbench-design to implement or review this UI change so it matches the current MapBench site."
