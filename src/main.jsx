@@ -219,53 +219,15 @@ function RoutedGraph({ className, nodes, edges, width, height, rankdir, ranksep,
 }
 
 function Header({ active, onNavigate }) {
-  const navRef = useRef(null);
-  const activeButtonRef = useRef(null);
-  const capsuleRef = useRef(null);
-
-  useLayoutEffect(() => {
-    const nav = navRef.current;
-    const activeButton = activeButtonRef.current;
-    const capsule = capsuleRef.current;
-    if (!nav || !activeButton || !capsule) return undefined;
-
-    const updateCapsule = () => {
-      const navRect = nav.getBoundingClientRect();
-      const buttonRect = activeButton.getBoundingClientRect();
-      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      gsap.to(capsule, {
-        x: buttonRect.left - navRect.left,
-        y: buttonRect.top - navRect.top,
-        width: buttonRect.width,
-        height: buttonRect.height,
-        opacity: 1,
-        duration: reducedMotion ? 0.01 : 0.28,
-        ease: 'power2.out',
-        overwrite: 'auto',
-      });
-    };
-
-    updateCapsule();
-    const observer = new ResizeObserver(updateCapsule);
-    observer.observe(nav);
-    window.addEventListener('resize', updateCapsule);
-    return () => {
-      observer.disconnect();
-      window.removeEventListener('resize', updateCapsule);
-    };
-  }, [active]);
-
   return (
     <header className="site-header">
       <button className="wordmark" onClick={() => onNavigate('mapbench')} aria-label="Go to MapBench introduction">
         <Mark/><span>MapBench</span>
       </button>
-      <nav className="primary-nav" ref={navRef} aria-label="Primary navigation">
-        <span className="nav-active-capsule" ref={capsuleRef} aria-hidden="true"/>
+      <nav className="primary-nav" aria-label="Primary navigation">
         {VIEWS.map((view) => (
           <button
             key={view.id}
-            ref={active === view.id ? activeButtonRef : null}
             className={`nav-link ${active === view.id ? 'active' : ''}`}
             aria-current={active === view.id ? 'page' : undefined}
             onClick={() => onNavigate(view.id)}
@@ -295,7 +257,7 @@ function ResearchCopy({ id, title, statement, children, action }) {
   );
 }
 
-const FILES = ['runner.ts', 'workspace.ts', 'verify.ts'];
+const FILES = ['app.ts', 'config.ts', 'tests.ts'];
 const STRUCTURE_NODES = [
   { id: 'module', label: 'module', width: 54, height: 23 },
   { id: 'symbol', label: 'symbol', width: 54, height: 23, className: 'core' },
@@ -382,7 +344,10 @@ function MapExperimentFigure() {
         <section className="sequence-stage repository-stage">
           <header><span>01 · source → artifact</span><p>Programmatic generation</p></header>
           <div className="repository-files">
-            {FILES.map((file) => <span className="repository-file" key={file}><code>{file}</code></span>)}
+            <span className="repository-folder"><code>project/</code></span>
+            <div className="repository-file-list">
+              {FILES.map((file) => <span className="repository-file" key={file}><code>{file}</code></span>)}
+            </div>
           </div>
           <div className="generation-card"><span>deterministic build</span><i className="ui-port generator-output"/></div>
         </section>
@@ -398,10 +363,10 @@ function MapExperimentFigure() {
           <header><span>03 · agent traversal</span><p>Navigation</p></header>
           <div className="navigation-map">
             <div className="repository-tree">
-              <span className="tree-row tree-root" data-route><i className="tree-anchor"/><code>mapbench/</code></span>
+              <span className="tree-row tree-root" data-route><i className="tree-anchor"/><code>project/</code></span>
               <span className="tree-row depth-1" data-route><i className="tree-guide">└─</i><i className="tree-anchor"/><code>src/</code></span>
-              <span className="tree-row depth-2" data-route><i className="tree-guide">└─</i><i className="tree-anchor"/><code>workspace.ts</code></span>
-              <span className="tree-row tree-symbol depth-3" data-route><i className="tree-guide">└─</i><i className="tree-anchor"/><code>resolveRoot()</code></span>
+              <span className="tree-row depth-2" data-route><i className="tree-guide">└─</i><i className="tree-anchor"/><code>app.ts</code></span>
+              <span className="tree-row tree-symbol depth-3" data-route><i className="tree-guide">└─</i><i className="tree-anchor"/><code>resolveTarget()</code></span>
             </div>
           </div>
         </section>
@@ -409,7 +374,7 @@ function MapExperimentFigure() {
         <section className="sequence-stage outcome-stage">
           <header><span>04 · result</span><p>Outcome</p></header>
           <div className="completion-trace">
-            <div className="completion-target"><code>workspace.ts</code><span>resolveRoot()</span></div>
+            <div className="completion-target"><code>app.ts</code><span>resolveTarget()</span></div>
             <div className="outcome-card"><i className="ui-port outcome-port"/><i className="completion-mark"/><div><strong>Task completed</strong><span>target verified</span></div></div>
           </div>
         </section>
@@ -535,7 +500,10 @@ function CartographFigure() {
         <section className="sequence-stage source-stage" aria-hidden="true">
           <header><span>01 · repository</span><p>Source files</p></header>
           <div className="source-files">
-            {SOURCE_FILES.map((file) => <span className="source-file" key={file}><code>{file}</code><i className="ui-port stage-port"/></span>)}
+            <span className="source-folder"><code>project/</code></span>
+            <div className="source-file-list">
+              {SOURCE_FILES.map((file) => <span className="source-file" key={file}><code>{file}</code><i className="ui-port stage-port"/></span>)}
+            </div>
           </div>
         </section>
         <i className="track-line" aria-hidden="true"/>
@@ -545,11 +513,10 @@ function CartographFigure() {
             <i className="ui-port parser-input"/><i className="ui-port parser-output"/>
             <strong>Tree-sitter</strong>
             <div className="parser-pipeline">
-              <div className="parser-source" aria-label="Source"><i className="parser-phase"/><i className="parser-phase"/><i className="parser-phase"/></div>
-              <span className="parser-action">parse</span>
-              <div className="parser-ast" aria-label="Abstract syntax tree"><span className="parser-phase">program</span><span className="parser-phase">function</span><span className="parser-phase">call</span></div>
+              <div className="parser-source" aria-label="Source"><i className="parser-phase"/><i className="parser-phase"/></div>
+              <span className="parser-action" aria-label="Parse"/>
+              <div className="parser-ast" aria-label="Abstract syntax tree"><span className="parser-phase">root</span><span className="parser-phase">call</span></div>
             </div>
-            <span>AST → symbols</span>
           </div>
         </section>
         <i className="track-line parser-to-ir" aria-hidden="true"/>
@@ -571,9 +538,7 @@ function CartographFigure() {
               onNodeHover={setActiveIrNode}
             />
           </div>
-          <div className="ir-relation-list" aria-label="Canonical IR relations">
-            {IR_EDGES.map(([source, target]) => <span key={`${source}-${target}`}><b>{source}</b><i>→</i><b>{target}</b></span>)}
-          </div>
+
         </section>
         <i className="track-line" aria-hidden="true"/>
         <section className="sequence-stage projection-stage" aria-hidden="true">
