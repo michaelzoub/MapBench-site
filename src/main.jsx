@@ -142,54 +142,134 @@ function createGraphLayout({ nodes, edges, width, height, rankdir = 'LR', rankse
   };
 }
 
-function RoutedGraph({ className, nodes, edges, width, height, rankdir, ranksep, nodesep, labelled = false }) {
+function RoutedGraph({ className, nodes, edges, width, height, rankdir, ranksep, nodesep, labelled = false, interactive = false, activeNode = null, onNodeHover }) {
   const layout = useMemo(
     () => createGraphLayout({ nodes, edges, width, height, rankdir, ranksep, nodesep }),
     [edges, height, nodes, nodesep, rankdir, ranksep, width],
   );
+  const connectedNodeIds = activeNode
+    ? new Set(layout.edges.flatMap((edge) => edge.source === activeNode || edge.target === activeNode ? [edge.source, edge.target] : []))
+    : new Set();
 
   return (
-    <svg className={`routed-graph ${className}`} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet" focusable="false">
+    <svg
+      className={`routed-graph ${className}`}
+      viewBox={`0 0 ${width} ${height}`}
+      preserveAspectRatio="xMidYMid meet"
+      focusable={interactive ? undefined : 'false'}
+      aria-label={interactive ? 'Canonical intermediate representation graph' : undefined}
+    >
       <g className="graph-edges">
-        {layout.edges.map((edge) => (
-          <path
-            key={edge.id}
-            className={`${className}-edge layout-edge`}
-            data-edge={`${edge.source}-${edge.target}`}
-            d={edge.points.map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x},${point.y}`).join(' ')}
-          />
-        ))}
+        {layout.edges.map((edge) => {
+          const edgeActive = interactive && activeNode && (edge.source === activeNode || edge.target === activeNode);
+          return (
+            <path
+              key={edge.id}
+              className={`${className}-edge layout-edge ${interactive ? (edgeActive ? 'is-active' : activeNode ? 'is-dimmed' : '') : ''}`}
+              data-edge={`${edge.source}-${edge.target}`}
+              d={edge.points.map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x},${point.y}`).join(' ')}
+            />
+          );
+        })}
       </g>
       <g className="graph-nodes">
-        {layout.nodes.map((node) => labelled ? (
-          <g key={node.id} className={`${className}-node layout-node ${node.className || ''}`} data-node={node.id} transform={`translate(${node.x} ${node.y})`}>
-            <rect x={-(node.width * node.scale) / 2} y={-(node.height * node.scale) / 2} width={node.width * node.scale} height={node.height * node.scale}/>
-            <text textAnchor="middle" dominantBaseline="central">{node.label}</text>
-          </g>
-        ) : (
-          <circle
-            key={node.id}
-            className={`${className}-node layout-node ${node.className || ''}`}
-            data-node={node.id}
-            cx={node.x}
-            cy={node.y}
-            r={(node.radius || 5) * node.scale}
-          />
-        ))}
+        {layout.nodes.map((node) => {
+          const nodeActive = interactive && activeNode === node.id;
+          const nodeConnected = interactive && connectedNodeIds.has(node.id) && !nodeActive;
+          const nodeDimmed = interactive && activeNode && !nodeActive && !nodeConnected;
+          const nodeClass = `${className}-node layout-node ${node.className || ''} ${nodeActive ? 'is-active' : ''} ${nodeConnected ? 'is-connected' : ''} ${nodeDimmed ? 'is-dimmed' : ''}`;
+          const nodeHandlers = interactive ? {
+            onMouseEnter: () => onNodeHover?.(node.id),
+            onMouseLeave: () => onNodeHover?.(null),
+            onFocus: () => onNodeHover?.(node.id),
+            onBlur: () => onNodeHover?.(null),
+            onKeyDown: (event) => {
+              if (event.key === 'Escape') onNodeHover?.(null);
+            },
+          } : {};
+          return labelled ? (
+            <g
+              key={node.id}
+              className={nodeClass}
+              data-node={node.id}
+              transform={`translate(${node.x} ${node.y})`}
+              role={interactive ? 'button' : undefined}
+              tabIndex={interactive ? 0 : undefined}
+              aria-label={interactive ? `${node.label} entity` : undefined}
+              {...nodeHandlers}
+            >
+              <rect x={-(node.width * node.scale) / 2} y={-(node.height * node.scale) / 2} width={node.width * node.scale} height={node.height * node.scale}/>
+              <text textAnchor="middle" dominantBaseline="central">{node.label}</text>
+            </g>
+          ) : (
+            <circle
+              key={node.id}
+              className={nodeClass}
+              data-node={node.id}
+              cx={node.x}
+              cy={node.y}
+              r={(node.radius || 5) * node.scale}
+              {...nodeHandlers}
+            />
+          );
+        })}
       </g>
     </svg>
   );
 }
 
 function Header({ active, onNavigate }) {
+  const navRef = useRef(null);
+  const activeButtonRef = useRef(null);
+  const capsuleRef = useRef(null);
+
+  useLayoutEffect(() => {
+    const nav = navRef.current;
+    const activeButton = activeButtonRef.current;
+    const capsule = capsuleRef.current;
+    if (!nav || !activeButton || !capsule) return undefined;
+
+    const updateCapsule = () => {
+      const navRect = nav.getBoundingClientRect();
+      const buttonRect = activeButton.getBoundingClientRect();
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      gsap.to(capsule, {
+        x: buttonRect.left - navRect.left,
+        y: buttonRect.top - navRect.top,
+        width: buttonRect.width,
+        height: buttonRect.height,
+        opacity: 1,
+        duration: reducedMotion ? 0.01 : 0.28,
+        ease: 'power2.out',
+        overwrite: 'auto',
+      });
+    };
+
+    updateCapsule();
+    const observer = new ResizeObserver(updateCapsule);
+    observer.observe(nav);
+    window.addEventListener('resize', updateCapsule);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updateCapsule);
+    };
+  }, [active]);
+
   return (
     <header className="site-header">
       <button className="wordmark" onClick={() => onNavigate('mapbench')} aria-label="Go to MapBench introduction">
         <Mark/><span>MapBench</span>
       </button>
-      <nav className="primary-nav" aria-label="Primary navigation">
+      <nav className="primary-nav" ref={navRef} aria-label="Primary navigation">
+        <span className="nav-active-capsule" ref={capsuleRef} aria-hidden="true"/>
         {VIEWS.map((view) => (
-          <button key={view.id} className={active === view.id ? 'active' : ''} aria-current={active === view.id ? 'page' : undefined} onClick={() => onNavigate(view.id)}>
+          <button
+            key={view.id}
+            ref={active === view.id ? activeButtonRef : null}
+            className={`nav-link ${active === view.id ? 'active' : ''}`}
+            aria-current={active === view.id ? 'page' : undefined}
+            onClick={() => onNavigate(view.id)}
+          >
             {view.label}
           </button>
         ))}
@@ -198,6 +278,7 @@ function Header({ active, onNavigate }) {
     </header>
   );
 }
+
 
 function ViewFrame({ id, children, className = '' }) {
   return <section className={`view ${className}`} id={id} aria-labelledby={`${id}-title`}>{children}</section>;
@@ -381,6 +462,7 @@ const IR_EDGES = [
 
 function CartographFigure() {
   const ref = useRef(null);
+  const [activeIrNode, setActiveIrNode] = useState(null);
 
   useCausalTimeline(ref, (root) => {
     const track = q(root, '.sequence-track');
@@ -442,22 +524,22 @@ function CartographFigure() {
       .set(files, { opacity: 0.38, color: '#777777' })
       .set(treeSitter, { backgroundColor: '#f4f4f4', color: '#626262' })
       .set(parserPhases, { opacity: 0.28 })
-      .set([...irNodes, ...irEdges], { opacity: 0 })
+      .set([...irNodes, ...irEdges], { opacity: 1 })
       .set(projections, { opacity: 0.48, backgroundColor: '#f4f4f4', color: '#666666' });
   });
 
   return (
     <figure className="research-figure sequence-figure cartograph-sequence" data-motion="visual" ref={ref}>
       <figcaption className="sr-only">Files enter Tree-sitter one at a time, form a canonical intermediate representation, then activate deterministic projections.</figcaption>
-      <div className="sequence-track" aria-hidden="true">
-        <section className="sequence-stage source-stage">
+      <div className="sequence-track">
+        <section className="sequence-stage source-stage" aria-hidden="true">
           <header><span>01 · repository</span><p>Source files</p></header>
           <div className="source-files">
             {SOURCE_FILES.map((file) => <span className="source-file" key={file}><code>{file}</code><i className="ui-port stage-port"/></span>)}
           </div>
         </section>
-        <i className="track-line"/>
-        <section className="sequence-stage parser-stage">
+        <i className="track-line" aria-hidden="true"/>
+        <section className="sequence-stage parser-stage" aria-hidden="true">
           <header><span>02 · grammar-aware</span><p>Parsing</p></header>
           <div className="tree-sitter-card">
             <i className="ui-port parser-input"/><i className="ui-port parser-output"/>
@@ -470,15 +552,31 @@ function CartographFigure() {
             <span>AST → symbols</span>
           </div>
         </section>
-        <i className="track-line parser-to-ir"/>
+        <i className="track-line parser-to-ir" aria-hidden="true"/>
         <section className="sequence-stage ir-stage">
           <header><span>03 · normalized</span><p>Canonical IR</p></header>
           <div className="canonical-ir">
-            <RoutedGraph className="ir" nodes={IR_NODES} edges={IR_EDGES} width={164} height={150} rankdir="TB" ranksep={26} nodesep={20} labelled/>
+            <RoutedGraph
+              className="ir"
+              nodes={IR_NODES}
+              edges={IR_EDGES}
+              width={164}
+              height={150}
+              rankdir="TB"
+              ranksep={26}
+              nodesep={20}
+              labelled
+              interactive
+              activeNode={activeIrNode}
+              onNodeHover={setActiveIrNode}
+            />
+          </div>
+          <div className="ir-relation-list" aria-label="Canonical IR relations">
+            {IR_EDGES.map(([source, target]) => <span key={`${source}-${target}`}><b>{source}</b><i>→</i><b>{target}</b></span>)}
           </div>
         </section>
-        <i className="track-line"/>
-        <section className="sequence-stage projection-stage">
+        <i className="track-line" aria-hidden="true"/>
+        <section className="sequence-stage projection-stage" aria-hidden="true">
           <header><span>04 · deterministic</span><p>Projections</p></header>
           <div className="projection-list">
             {PROJECTIONS.map((item) => <span className="projection-row" key={item}><i className="ui-port projection-port"/>{item}</span>)}
@@ -775,27 +873,36 @@ const EXPERIMENT_METRICS = [
   },
 ];
 
+const EXPERIMENT_TASK = 'Runner verification';
+
 function ObservationDetail({ observation, metric }) {
   if (!observation) {
     return null;
   }
 
   const { condition, run } = observation;
+  const score = run.hiddenGrader.score / run.hiddenGrader.maxScore;
   return (
     <aside className="observation-detail" aria-live="polite" aria-label={`${condition.label}, run ${formatRun(run.run)} details`}>
       <div className="observation-title-row">
         <h2>{condition.label} <span>/ {formatRun(run.run)}</span></h2>
         <span className={`observation-status ${run.status}`}>{run.status}</span>
       </div>
+      <div className="observation-task">
+        <span>Task</span>
+        <strong>{EXPERIMENT_TASK}</strong>
+      </div>
       <div className="observation-primary">
-        <span>{metric.detailLabel}</span>
+        <span>Selected measure · {metric.detailLabel}</span>
         <strong>{metric.format(metric.value(run))}</strong>
       </div>
       <dl className="observation-grid">
+        <div><dt>Condition</dt><dd>{condition.label}</dd></div>
+        <div><dt>Repetition</dt><dd>{formatRun(run.run)} / 03</dd></div>
+        <div><dt>Score</dt><dd>{Math.round(score * 100)}%</dd></div>
         <div><dt>Tokens</dt><dd>{formatTokens(run.tokens.total)}</dd></div>
         <div><dt>Runtime</dt><dd>{formatDuration(run.durationMs)}</dd></div>
-        <div><dt>Source files</dt><dd>{run.navigation.uniqueSourceFiles}</dd></div>
-        <div><dt>Commands</dt><dd>{run.commandCount}</dd></div>
+        <div><dt>Cost</dt><dd>${run.estimatedCostUsd.toFixed(2)}</dd></div>
       </dl>
     </aside>
   );
@@ -958,7 +1065,7 @@ function App() {
         setDisplayed(view);
         window.scrollTo({ top: 0, behavior: 'auto' });
       },
-    }).to(outgoing, { opacity: 0, y: -5, duration: 0.14 });
+    }).to(outgoing, { opacity: 0, y: -8, duration: 0.18 });
   };
 
   const navigate = (view) => {
