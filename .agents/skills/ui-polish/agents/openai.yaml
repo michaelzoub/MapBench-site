@@ -1,0 +1,4 @@
+interface:
+  display_name: "UI Polish"
+  short_description: "Refine spacing, alignment, and visual restraint"
+  default_prompt: "Use $ui-polish to refine this interface so it feels calmer, more aligned, and native to the existing site."

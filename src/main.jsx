@@ -242,8 +242,8 @@ function Header({ active, onNavigate }) {
 }
 
 
-function ViewFrame({ id, children, className = '' }) {
-  return <section className={`view ${className}`} id={id} aria-labelledby={`${id}-title`}>{children}</section>;
+function ViewFrame({ id, children, className = '', rootRef }) {
+  return <section ref={rootRef} className={`view ${className}`} id={id} aria-labelledby={`${id}-title`}>{children}</section>;
 }
 
 function ResearchCopy({ id, title, statement, children, action }) {
@@ -555,15 +555,249 @@ function CartographFigure() {
   );
 }
 
-function CartographView() {
+const DESIGN_PROJECTIONS = [
+  {
+    id: 'architecture',
+    kicker: 'global',
+    title: 'architecture.md',
+    hypothesis: 'A short Markdown map of the repository. Agents form a mental model and find a place to start.',
+    tradeoff: 'Highly compressed. Cross-cutting or task-relevant relationships can disappear.',
+  },
+  {
+    id: 'skeleton',
+    kicker: 'declarations',
+    title: 'Skeleton',
+    hypothesis: 'Mirrored files at declaration level. Locate modules, types, functions, and interfaces without reading bodies.',
+    tradeoff: 'Behavior is stripped. Agents still need filesystem and search to reach implementations.',
+  },
+  {
+    id: 'call-graph',
+    kicker: 'execution',
+    title: 'Call graph',
+    hypothesis: 'Caller–callee edges. Trace execution across files without reconstructing paths by hand.',
+    tradeoff: 'Static analysis is noisy and incomplete, and it lacks semantic context.',
+  },
+  {
+    id: 'all',
+    kicker: 'combined',
+    title: 'All',
+    hypothesis: 'The three views cover global, local, and execution structure together.',
+    tradeoff: 'More views mean redundancy, tool-selection cost, and diminishing returns.',
+  },
+];
+
+const BOUNDARY_COLUMNS = ['Architecture', 'Skeleton', 'Graph'];
+const INFORMATION_BOUNDARY = [
+  { label: 'Directory hierarchy', values: [false, true, false] },
+  { label: 'Declarations', values: [false, true, false] },
+  { label: 'Signatures', values: [false, true, false] },
+  { label: 'Implementation', values: [false, false, false] },
+  { label: 'Call edges', values: [false, false, true] },
+  { label: 'Import edges', values: [false, false, true] },
+  { label: 'Global overview', values: [true, false, false] },
+  { label: 'Source-native format', values: [false, true, false] },
+];
+
+function CartographDesignLayer({ onBack, backRef }) {
   return (
-    <ViewFrame id="cartograph" className="two-column cartograph-view">
-      <ResearchCopy id="cartograph" title="Cartograph" statement="The structural analysis system used inside MapBench.">
-        <p>Cartograph uses Tree-sitter to parse source code into a canonical representation of modules, symbols, locations, and typed relationships.</p>
-        <p>MapBench utilizes Cartograph’s deterministic projections—architecture, skeleton, call graph, and Mermaid—as experimental artifacts.</p>
-        <p className="language-tag">TypeScript, JavaScript, Python, Go, and Rust.</p>
-      </ResearchCopy>
-      <CartographFigure/>
+    <div className="cartograph-design">
+      <div className="cartograph-design-heading">
+        <div>
+          <button ref={backRef} className="text-action design-back" data-motion="heading" onClick={onBack} aria-label="Back to Cartograph overview">
+            <span aria-hidden="true">←</span> Overview
+          </button>
+          <h1 id="cartograph-title" data-motion="heading">Cartograph</h1>
+        </div>
+        <p data-motion="text">Each projection is a designed loss of information: a hypothesis about what orients an agent, and a tradeoff in what it conceals.</p>
+      </div>
+      <div className="design-projections">
+        {DESIGN_PROJECTIONS.map((item) => (
+          <article className="design-projection" key={item.id} data-motion="visual">
+            <header>
+              <span>{item.kicker}</span>
+              <p>{item.title}</p>
+            </header>
+            <div className="design-fields">
+              <section className="design-field">
+                <h3>Hypothesis</h3>
+                <p>{item.hypothesis}</p>
+              </section>
+              <section className="design-field">
+                <h3>Tradeoff</h3>
+                <p>{item.tradeoff}</p>
+              </section>
+            </div>
+          </article>
+        ))}
+      </div>
+      <section className="design-boundary" data-motion="visual">
+        <div>
+          <header>
+            <span>comparison</span>
+            <p>Information boundary</p>
+          </header>
+          <p className="design-boundary-copy">What each projection retains from source. Implementation stays in the files themselves.</p>
+          <div className="chart-key" aria-hidden="true">
+            <span><i className="key-on"/>Retained</span>
+            <span><i className="key-off"/>Omitted</span>
+          </div>
+        </div>
+        <div className="boundary-scroll">
+          <table className="boundary-matrix">
+            <caption className="sr-only">Information retained by Architecture, Skeleton, and Graph projections</caption>
+            <thead>
+              <tr>
+                <th scope="col"><span className="sr-only">Dimension</span></th>
+                {BOUNDARY_COLUMNS.map((column) => <th scope="col" key={column}>{column}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {INFORMATION_BOUNDARY.map((row) => (
+                <tr key={row.label}>
+                  <th scope="row">{row.label}</th>
+                  {row.values.map((on, index) => (
+                    <td key={BOUNDARY_COLUMNS[index]}>
+                      <span className={`boundary-mark ${on ? 'is-on' : ''}`}>
+                        <i/>
+                        <span className="sr-only">{on ? 'Retained' : 'Omitted'}</span>
+                      </span>
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function CartographView({ overviewTick = 0 }) {
+  const [displayedLayer, setDisplayedLayer] = useState('overview');
+  const layerRef = useRef(null);
+  const learnRef = useRef(null);
+  const backRef = useRef(null);
+  const transitionRef = useRef(null);
+  const transitionId = useRef(0);
+  const skipEntrance = useRef(true);
+  const hasLayered = useRef(false);
+  const moveFocus = useRef(false);
+  const showLayerRef = useRef(() => {});
+
+  const showLayer = (next, { focus = false } = {}) => {
+    if (next === displayedLayer) return;
+    hasLayered.current = true;
+    moveFocus.current = focus;
+    const id = transitionId.current + 1;
+    transitionId.current = id;
+    transitionRef.current?.kill();
+    const outgoing = layerRef.current;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reducedMotion || !outgoing) {
+      setDisplayedLayer(next);
+      window.scrollTo({ top: 0, behavior: 'auto' });
+      return;
+    }
+
+    transitionRef.current = gsap.timeline({
+      defaults: { ease: 'power1.out', overwrite: 'auto' },
+      onComplete: () => {
+        if (transitionId.current !== id) return;
+        transitionRef.current = null;
+        setDisplayedLayer(next);
+        window.scrollTo({ top: 0, behavior: 'auto' });
+      },
+    }).to(outgoing, { opacity: 0, y: -8, duration: 0.18 });
+  };
+
+  showLayerRef.current = showLayer;
+
+  useLayoutEffect(() => {
+    const root = layerRef.current;
+    if (!root) return undefined;
+    if (skipEntrance.current) {
+      skipEntrance.current = false;
+      return undefined;
+    }
+
+    const heading = qa(root, '[data-motion="heading"]');
+    const text = qa(root, '[data-motion="text"]');
+    const visual = qa(root, '[data-motion="visual"]');
+    const context = gsap.context(() => {
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (reducedMotion) {
+        gsap.set([root, ...heading, ...text, ...visual], { clearProps: 'opacity,transform' });
+        return;
+      }
+
+      gsap.set(root, { opacity: 0, y: 6 });
+      gsap.set([...heading, ...text, ...visual], { opacity: 0, y: 5 });
+      gsap.timeline({ defaults: { ease: 'power1.out', overwrite: 'auto' } })
+        .to(root, { opacity: 1, y: 0, duration: 0.2 })
+        .to(heading, { opacity: 1, y: 0, duration: 0.2, stagger: 0.035 }, '-=0.08')
+        .to(text, { opacity: 1, y: 0, duration: 0.2, stagger: 0.045 }, '-=0.08')
+        .to(visual, { opacity: 1, y: 0, duration: 0.24, stagger: 0.05 }, '-=0.08');
+    }, root);
+
+    return () => context.revert();
+  }, [displayedLayer]);
+
+  useEffect(() => {
+    if (overviewTick === 0) return;
+    showLayerRef.current('overview');
+  }, [overviewTick]);
+
+  useEffect(() => {
+    if (displayedLayer !== 'design') return undefined;
+    const onKey = (event) => {
+      if (event.key === 'Escape') showLayerRef.current('overview', { focus: true });
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [displayedLayer]);
+
+  useEffect(() => {
+    if (!hasLayered.current || !moveFocus.current) return;
+    if (displayedLayer === 'design') backRef.current?.focus();
+    else learnRef.current?.focus();
+  }, [displayedLayer]);
+
+  useEffect(() => () => transitionRef.current?.kill(), []);
+
+  return (
+    <ViewFrame
+      id="cartograph"
+      className={displayedLayer === 'design' ? 'cartograph-design-view' : 'cartograph-view'}
+      rootRef={layerRef}
+    >
+      {displayedLayer === 'overview' ? (
+        <div className="two-column">
+          <ResearchCopy
+            id="cartograph"
+            title="Cartograph"
+            statement="The structural analysis system used inside MapBench."
+            action={(
+              <button
+                ref={learnRef}
+                className="text-action"
+                data-motion="text"
+                onClick={(event) => showLayer('design', { focus: event.detail === 0 })}
+                aria-label="Learn about Cartograph projection design"
+              >
+                Learn about design <span aria-hidden="true">→</span>
+              </button>
+            )}
+          >
+            <p>Cartograph uses Tree-sitter to parse source code into a canonical representation of modules, symbols, locations, and typed relationships.</p>
+            <p>MapBench utilizes Cartograph’s deterministic projections—architecture, skeleton, call graph, and Mermaid—as experimental artifacts.</p>
+            <p className="language-tag">TypeScript, JavaScript, Python, Go, and Rust.</p>
+          </ResearchCopy>
+          <CartographFigure/>
+        </div>
+      ) : (
+        <CartographDesignLayer onBack={(event) => showLayer('overview', { focus: event.detail === 0 })} backRef={backRef}/>
+      )}
     </ViewFrame>
   );
 }
@@ -1003,6 +1237,7 @@ function App() {
   }, []);
   const [active, setActive] = useState(initialView);
   const [displayed, setDisplayed] = useState(initialView);
+  const [cartographTick, setCartographTick] = useState(0);
   const activeRef = useRef(initialView);
   const viewportRef = useRef(null);
   const transitionRef = useRef(null);
@@ -1034,7 +1269,10 @@ function App() {
   };
 
   const navigate = (view) => {
-    if (view === activeRef.current) return;
+    if (view === activeRef.current) {
+      if (view === 'cartograph') setCartographTick((tick) => tick + 1);
+      return;
+    }
     activeRef.current = view;
     window.history.pushState(null, '', `#${view}`);
     setActive(view);
@@ -1064,7 +1302,7 @@ function App() {
       <Header active={active} onNavigate={navigate}/>
       <main className="view-port" ref={viewportRef}>
         {displayed === 'mapbench' && <MapBenchView onNavigate={navigate}/>}
-        {displayed === 'cartograph' && <CartographView/>}
+        {displayed === 'cartograph' && <CartographView overviewTick={cartographTick}/>}
         {displayed === 'benchmark' && <BenchmarkView/>}
         {displayed === 'experiments' && <ExperimentsView/>}
       </main>

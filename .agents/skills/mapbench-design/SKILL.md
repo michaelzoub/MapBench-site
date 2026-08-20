@@ -20,7 +20,7 @@ Preserve the site's specific aesthetic: extremely simple, technical, spacious, p
 - Use only neutral grays already present in the site. Prefer the tokens `--body: #565656`, `--muted: #888888`, `--medium: #a8a8a8`, `--light: #ededed`, and `--soft: #f5f5f5`, or reuse a nearby established gray before adding one.
 - Use contrast sparingly: black for primary content, active controls, small data marks, and primary CTAs; medium gray for body copy; pale gray for structure and inactive states.
 - Keep surfaces flat. Do not add accent colors, gradients, glass effects, decorative textures, or elevation shadows. The existing white halo around moving diagram tokens is a functional contrast aid, not a surface treatment.
-- Use thin, quiet separators, normally 1px in light gray. Avoid ornamental borders and heavy frames.
+- Use thin, quiet separators only where the live site already uses them for diagrams and data (track lines, chart ticks, observation rules). Do not add new section dividers. Cartograph’s design layer groups content with spacing and alignment only.
 
 ## Layout and rhythm
 
@@ -46,6 +46,7 @@ Preserve the site's specific aesthetic: extremely simple, technical, spacious, p
 - Keep navigation minimal: small text links, quiet inactive gray, a modest active treatment, and at most one subtle light-gray external-link pill.
 - Use fully rounded CTAs. Primary CTAs are compact black pills with white text; secondary actions are compact pale-gray or white pills with a subtle 1px border.
 - Use tags and pills only for concise metadata or actions. Keep them small, light gray, and low contrast.
+- Keep secondary research detail inside its parent tab. Cartograph’s projection design rationale is an in-page layer opened from a quiet text control, using the same GSAP fade/translate as page changes—not a new nav item, modal overlay, or separate visual system. Structure that layer with the research two-column grid, short hypothesis/tradeoff fields, and a mark-based information-boundary comparison with no visible rules.
 - Represent technical artifacts with compact flat rows, nodes, slots, or panels in `--soft`/`--light`. Use small differences in gray or opacity to communicate state.
 - Reserve solid black fills for small, high-information states such as an active metric tab, a primary CTA, a mean marker, or a terse status. Do not create oversized black boxes.
 - Do not default to cards. Avoid large rounded containers, nested card grids, dashboard chrome, redundant section wrappers, and excessive badges.

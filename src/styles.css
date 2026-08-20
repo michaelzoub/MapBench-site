@@ -54,7 +54,7 @@ button:focus-visible, a:focus-visible { outline: 1px solid var(--ink); outline-o
 .view { width: min(1480px, 100%); min-height: calc(100dvh - var(--header-h)); margin: 0 auto; padding: clamp(48px, 7vh, 86px) clamp(34px, 7vw, 112px) clamp(52px, 7vh, 80px); will-change: opacity, transform; }
 .two-column { display: grid; grid-template-columns: minmax(330px, .78fr) minmax(600px, 1.22fr); gap: clamp(70px, 8vw, 132px); align-items: center; }
 .research-copy { max-width: 510px; transform: translateY(-1vh); }
-.research-copy h1, .experiments-heading h1 { margin: 0 0 32px; font-size: clamp(46px, 4.4vw, 68px); line-height: .98; letter-spacing: -.055em; font-weight: 500; }
+.research-copy h1, .experiments-heading h1, .cartograph-design-heading h1 { margin: 0 0 32px; font-size: clamp(46px, 4.4vw, 68px); line-height: .98; letter-spacing: -.055em; font-weight: 500; }
 .primary-statement { max-width: 520px; margin: 0 0 26px; color: #292929; font-size: clamp(18px, 1.5vw, 21px); line-height: 1.46; letter-spacing: -.022em; font-weight: 440; }
 .copy-body { max-width: 470px; color: var(--body); font-size: 14px; line-height: 1.7; }
 .copy-body p { margin: 0 0 15px; }
@@ -63,7 +63,8 @@ button:focus-visible, a:focus-visible { outline: 1px solid var(--ink); outline-o
 .measure-summary { width: fit-content; margin: 25px 0 0; padding: 7px 11px; border-radius: 999px; background: #f1f1f1; color: #747474; font-size: 10px; line-height: 1.2; }
 .primary-pill { display: inline-flex; align-items: center; justify-content: center; gap: 15px; padding: 10px 17px; border-radius: 999px; background: var(--ink); color: var(--paper); font-size: 12px; font-weight: 520; cursor: pointer; transition: background-color 180ms ease; }
 .primary-pill:hover { background: #303030; }
-.text-action { margin-top: 28px; }
+.text-action { display: inline-flex; align-items: center; gap: 8px; margin-top: 22px; padding: 0; background: transparent; color: #777777; font-size: 12px; font-weight: 500; letter-spacing: -.01em; cursor: pointer; transition: color 180ms ease; }
+.text-action:hover { color: var(--ink); }
 .text-action span { color: inherit; }
 .hero-actions { margin-top: 28px; display: flex; align-items: center; gap: 9px; }
 .hero-actions .primary-pill { flex: 0 0 auto; }
@@ -74,9 +75,9 @@ button:focus-visible, a:focus-visible { outline: 1px solid var(--ink); outline-o
 .sequence-figure { height: min(58vh, 550px); min-height: 440px; display: flex; align-items: center; overflow: visible; }
 .sequence-track { position: relative; width: 100%; min-height: 330px; display: grid; grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1fr) 28px minmax(0, 1fr) 28px minmax(0, 1fr); align-items: start; column-gap: clamp(8px, .8vw, 12px); }
 .sequence-stage { position: relative; z-index: 2; min-width: 0; }
-.sequence-stage header, .benchmark-generation-stage header, .condition-list header, .run-bank header, .measure-stage header, .queue-list header { height: 54px; margin: 0 0 16px; display: grid; grid-template-rows: 9px 28px; align-content: start; overflow: visible; }
-.sequence-stage header span, .benchmark-generation-stage header span, .condition-list header span, .run-bank header span, .measure-stage header span, .queue-list header span { display: block; min-width: 0; overflow: hidden; color: #969696; font: 8px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .065em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
-.sequence-stage header p, .benchmark-generation-stage header p, .condition-list header p, .run-bank header p, .measure-stage header p, .queue-list header p { margin: 8px 0 0; color: #363636; font-size: 11px; font-weight: 560; line-height: 1.25; white-space: nowrap; }
+.sequence-stage header, .benchmark-generation-stage header, .condition-list header, .run-bank header, .measure-stage header, .queue-list header, .design-projection header, .design-boundary header { height: 54px; margin: 0 0 16px; display: grid; grid-template-rows: 9px 28px; align-content: start; overflow: visible; }
+.sequence-stage header span, .benchmark-generation-stage header span, .condition-list header span, .run-bank header span, .measure-stage header span, .queue-list header span, .design-projection header span, .design-boundary header span { display: block; min-width: 0; overflow: hidden; color: #969696; font: 8px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .065em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+.sequence-stage header p, .benchmark-generation-stage header p, .condition-list header p, .run-bank header p, .measure-stage header p, .queue-list header p, .design-projection header p, .design-boundary header p { margin: 8px 0 0; color: #363636; font-size: 11px; font-weight: 560; line-height: 1.25; white-space: nowrap; }
 .track-line, .benchmark-line { position: relative; z-index: 1; display: block; width: 100%; height: 10px; margin-top: 132px; background: transparent; }
 .track-line::before, .benchmark-line::before { content: ""; position: absolute; left: 0; right: 5px; top: 4px; height: 1px; background: #c7c7c7; }
 .track-line::after, .benchmark-line::after { content: ""; position: absolute; right: 0; top: 1px; width: 6px; height: 6px; border-top: 1px solid #9f9f9f; border-right: 1px solid #9f9f9f; transform: rotate(45deg); transform-origin: center; }
@@ -159,6 +160,36 @@ button:focus-visible, a:focus-visible { outline: 1px solid var(--ink); outline-o
 
 .projection-list { display: flex; flex-direction: column; gap: 9px; }
 .projection-row { position: relative; min-height: 28px; display: flex; align-items: center; padding: 0 9px 0 14px; overflow: visible; background: var(--soft); color: #777777; font-size: 9px; white-space: nowrap; }
+
+.cartograph-view { display: flex; align-items: center; }
+.cartograph-view > .two-column { width: 100%; }
+.cartograph-design-view { display: block; }
+.cartograph-design-heading { display: grid; grid-template-columns: minmax(330px, .78fr) minmax(600px, 1.22fr); align-items: end; gap: clamp(70px, 8vw, 132px); margin-bottom: clamp(52px, 8vh, 88px); }
+.cartograph-design-heading h1 { margin: 0; font-size: clamp(46px, 4.4vw, 68px); }
+.cartograph-design-heading p { max-width: 520px; margin: 0 0 5px; color: #292929; font-size: clamp(18px, 1.5vw, 21px); line-height: 1.46; letter-spacing: -.022em; }
+.design-back { margin: 0 0 20px; }
+.design-projections { display: grid; gap: clamp(52px, 7vh, 88px); }
+.design-projection, .design-boundary { display: grid; grid-template-columns: minmax(330px, .78fr) minmax(600px, 1.22fr); gap: clamp(70px, 8vw, 132px); align-items: start; }
+.design-projection header, .design-boundary header { margin: 0; }
+.design-boundary { margin-top: clamp(72px, 10vh, 120px); }
+.design-boundary-copy { max-width: 470px; margin: 14px 0 0; color: var(--body); font-size: 14px; line-height: 1.7; }
+.design-boundary .chart-key { margin-top: 22px; }
+.design-boundary .key-on::before { content: ""; position: absolute; left: 3px; top: 3px; width: 6px; height: 6px; border-radius: 50%; background: var(--ink); }
+.design-boundary .key-off::before { content: ""; position: absolute; left: 3px; top: 3px; width: 6px; height: 6px; border-radius: 50%; background: #e2e2e2; }
+.design-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 28px 56px; min-width: 0; }
+.design-field { min-width: 0; }
+.design-field h3 { margin: 0; color: #959595; font: 8px/1.25 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .045em; text-transform: uppercase; font-weight: 400; }
+.design-field p { margin: 8px 0 0; max-width: 360px; color: var(--body); font-size: 14px; line-height: 1.7; }
+.boundary-scroll { min-width: 0; }
+.boundary-matrix { width: 100%; max-width: 520px; border: 0; border-collapse: collapse; }
+.boundary-matrix th, .boundary-matrix td { border: 0; padding: 0; font-weight: 400; background: transparent; }
+.boundary-matrix thead th { padding: 0 8px 20px; color: #363636; font-size: 11px; font-weight: 560; line-height: 1.25; text-align: center; }
+.boundary-matrix thead th:first-child { padding-left: 0; text-align: left; }
+.boundary-matrix tbody th { padding: 10px 20px 10px 0; color: var(--body); font-size: 13px; font-weight: 440; letter-spacing: -.01em; text-align: left; }
+.boundary-matrix td { width: 92px; height: 32px; text-align: center; vertical-align: middle; }
+.boundary-mark { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; }
+.boundary-mark i { width: 5px; height: 5px; border-radius: 50%; background: #e2e2e2; }
+.boundary-mark.is-on i { background: var(--ink); }
 
 .benchmark-sequence { position: relative; height: min(59vh, 560px); min-height: 455px; display: flex; flex-direction: column; justify-content: center; overflow: visible; }
 .benchmark-track { position: relative; width: 100%; min-height: 340px; display: grid; grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1fr) 28px minmax(0, 1fr) 28px minmax(0, 1fr); column-gap: clamp(8px, .8vw, 12px); align-items: start; }
@@ -247,6 +278,7 @@ button:focus-visible, a:focus-visible { outline: 1px solid var(--ink); outline-o
   .sequence-track, .benchmark-track { column-gap: 7px; }
   .experiments-view { padding-left: 42px; padding-right: 42px; }
   .experiments-heading { grid-template-columns: minmax(300px, .7fr) minmax(550px, 1.3fr); gap: 52px; }
+  .cartograph-design-heading, .design-projection, .design-boundary { grid-template-columns: minmax(300px, .7fr) minmax(550px, 1.3fr); gap: 52px; }
 }
 
 @media (max-width: 980px) {
@@ -254,6 +286,7 @@ button:focus-visible, a:focus-visible { outline: 1px solid var(--ink); outline-o
   .research-copy { max-width: 620px; transform: none; }
   .experiments-heading { max-width: 620px; grid-template-columns: 1fr; gap: 16px; }
   .sequence-figure, .benchmark-sequence { width: 100%; min-height: 455px; height: auto; overflow-x: auto; overscroll-behavior-inline: contain; }
+  .cartograph-design-heading, .design-projection, .design-boundary { grid-template-columns: 1fr; gap: 16px; }
 }
 
 @media (max-width: 850px) {
@@ -265,12 +298,12 @@ button:focus-visible, a:focus-visible { outline: 1px solid var(--ink); outline-o
   .primary-nav button, .primary-nav a { flex: 0 0 auto; font-size: 12px; }
   .view { min-height: calc(100dvh - var(--header-h)); padding: 48px 26px 76px; }
   .two-column { grid-template-columns: 1fr; gap: 48px; }
-  .research-copy, .experiments-heading { max-width: 620px; transform: none; }
+  .research-copy, .experiments-heading, .cartograph-design-heading { max-width: 620px; transform: none; }
   .sequence-figure, .benchmark-sequence { width: 100%; min-height: 455px; height: auto; overflow-x: auto; overscroll-behavior-inline: contain; }
   .sequence-track, .benchmark-track { flex: 0 0 auto; }
   .experiments-view { padding: 36px 26px 64px; }
-  .experiments-heading { max-width: none; display: block; }
-  .experiments-heading h1 { margin-bottom: 14px; }
+  .experiments-heading, .cartograph-design-heading { max-width: none; display: block; }
+  .experiments-heading h1, .cartograph-design-heading h1 { margin-bottom: 14px; }
   .experiment-chart-layout { grid-template-columns: 1fr; gap: 10px; }
   .observation-detail { min-height: 0; margin-top: 8px; padding: 0; border: 0; }
   .chart-key { gap: 18px; }
@@ -281,9 +314,10 @@ button:focus-visible, a:focus-visible { outline: 1px solid var(--ink); outline-o
   .primary-nav { gap: 17px; }
   .primary-nav .secondary-pill { padding: 7px 11px; }
   .research-copy h1 { margin-bottom: 25px; font-size: 46px; }
-  .experiments-heading h1 { font-size: 46px; }
-  .primary-statement { font-size: 18px; }
-  .copy-body { font-size: 13px; }
+  .experiments-heading h1, .cartograph-design-heading h1 { font-size: 46px; }
+  .primary-statement, .cartograph-design-heading p { font-size: 18px; }
+  .copy-body, .design-field p, .design-boundary-copy { font-size: 13px; }
+  .design-fields { grid-template-columns: 1fr; gap: 20px; }
   .sequence-figure, .benchmark-sequence { min-height: 430px; margin-right: -26px; padding-right: 26px; }
   .sequence-track { width: 720px; min-height: 320px; }
   .map-sequence .sequence-track { width: 800px; grid-template-columns: 158px 28px 158px 28px 158px 28px 158px; }
@@ -296,6 +330,8 @@ button:focus-visible, a:focus-visible { outline: 1px solid var(--ink); outline-o
   .experiment-toolbar .chart-key { margin-top: 12px; flex-wrap: wrap; }
   .chart-heading { min-height: 32px; }
   .experiment-chart-scroll { margin-right: -26px; padding-right: 26px; }
+  .boundary-scroll { overflow-x: auto; overscroll-behavior-inline: contain; margin-right: -26px; padding-right: 26px; }
+  .boundary-matrix { min-width: 420px; }
   .chart-key { grid-template-columns: 1fr; gap: 10px; }
   .observation-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
