@@ -6,11 +6,12 @@ import './styles.css';
 
 const GITHUB_URL = 'https://github.com/michaelzoub/MapBench';
 const VIEWS = [
-  { id: 'mapbench', label: 'MapBench' },
   { id: 'cartograph', label: 'Cartograph' },
-  { id: 'benchmark', label: 'Benchmark' },
-  { id: 'experiments', label: 'Experiments' },
+  { id: 'experiment', label: 'Experiment' },
+  { id: 'results', label: 'Results' },
+  { id: 'future', label: 'Future Work' },
 ];
+const VALID_VIEWS = ['mapbench', ...VIEWS.map((view) => view.id)];
 
 const q = (root, selector) => root.querySelector(selector);
 const qa = (root, selector) => [...root.querySelectorAll(selector)];
@@ -219,6 +220,12 @@ function RoutedGraph({ className, nodes, edges, width, height, rankdir, ranksep,
 }
 
 function Header({ active, onNavigate }) {
+  const activeNavRef = useRef(null);
+
+  useEffect(() => {
+    activeNavRef.current?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, [active]);
+
   return (
     <header className="site-header">
       <button className="wordmark" onClick={() => onNavigate('mapbench')} aria-label="Go to MapBench introduction">
@@ -228,6 +235,7 @@ function Header({ active, onNavigate }) {
         {VIEWS.map((view) => (
           <button
             key={view.id}
+            ref={active === view.id ? activeNavRef : undefined}
             className={`nav-link ${active === view.id ? 'active' : ''}`}
             aria-current={active === view.id ? 'page' : undefined}
             onClick={() => onNavigate(view.id)}
@@ -235,8 +243,8 @@ function Header({ active, onNavigate }) {
             {view.label}
           </button>
         ))}
-        <a className="secondary-pill" href={GITHUB_URL} target="_blank" rel="noreferrer">GitHub ↗</a>
       </nav>
+      <a className="secondary-pill" href={GITHUB_URL} target="_blank" rel="noreferrer">GitHub ↗</a>
     </header>
   );
 }
@@ -342,7 +350,7 @@ function MapExperimentFigure() {
       <figcaption className="sr-only">Repository files are processed programmatically into deterministic structure, which guides an agent through a precise traversal to task completion.</figcaption>
       <div className="sequence-track" aria-hidden="true">
         <section className="sequence-stage repository-stage">
-          <header><span>01 · source → artifact</span><p>Programmatic generation</p></header>
+          <header><span>source → artifact</span><p>Programmatic generation</p></header>
           <div className="repository-files">
             <span className="repository-folder"><code>project/</code></span>
             <div className="repository-file-list">
@@ -353,14 +361,14 @@ function MapExperimentFigure() {
         </section>
         <i className="track-line"/>
         <section className="sequence-stage structure-stage">
-          <header><span>02 · canonical</span><p>Structure</p></header>
+          <header><span>canonical</span><p>Structure</p></header>
           <div className="structure-map">
             <RoutedGraph className="structure" nodes={STRUCTURE_NODES} edges={STRUCTURE_EDGES} width={176} height={136} rankdir="LR" ranksep={26} nodesep={18} labelled/>
           </div>
         </section>
         <i className="track-line"/>
         <section className="sequence-stage navigation-stage">
-          <header><span>03 · agent traversal</span><p>Navigation</p></header>
+          <header><span>agent traversal</span><p>Navigation</p></header>
           <div className="navigation-map">
             <div className="repository-tree">
               <span className="tree-row tree-root" data-route><i className="tree-anchor"/><code>project/</code></span>
@@ -372,7 +380,7 @@ function MapExperimentFigure() {
         </section>
         <i className="track-line"/>
         <section className="sequence-stage outcome-stage">
-          <header><span>04 · result</span><p>Outcome</p></header>
+          <header><span>result</span><p>Outcome</p></header>
           <div className="completion-trace">
             <div className="completion-target"><code>app.ts</code><span>resolveTarget()</span></div>
             <div className="outcome-card"><i className="ui-port outcome-port"/><i className="completion-mark"/><div><strong>Task completed</strong><span>target verified</span></div></div>
@@ -498,7 +506,7 @@ function CartographFigure() {
       <figcaption className="sr-only">Files enter Tree-sitter one at a time, form a canonical intermediate representation, then activate deterministic projections.</figcaption>
       <div className="sequence-track">
         <section className="sequence-stage source-stage" aria-hidden="true">
-          <header><span>01 · repository</span><p>Source files</p></header>
+          <header><span>repository</span><p>Source files</p></header>
           <div className="source-files">
             <span className="source-folder"><code>project/</code></span>
             <div className="source-file-list">
@@ -508,7 +516,7 @@ function CartographFigure() {
         </section>
         <i className="track-line" aria-hidden="true"/>
         <section className="sequence-stage parser-stage" aria-hidden="true">
-          <header><span>02 · grammar-aware</span><p>Parsing</p></header>
+          <header><span>grammar-aware</span><p>Parsing</p></header>
           <div className="tree-sitter-card">
             <i className="ui-port parser-input"/><i className="ui-port parser-output"/>
             <strong>Tree-sitter</strong>
@@ -521,7 +529,7 @@ function CartographFigure() {
         </section>
         <i className="track-line parser-to-ir" aria-hidden="true"/>
         <section className="sequence-stage ir-stage">
-          <header><span>03 · normalized</span><p>Canonical IR</p></header>
+          <header><span>normalized</span><p>Canonical IR</p></header>
           <div className="canonical-ir">
             <RoutedGraph
               className="ir"
@@ -542,7 +550,7 @@ function CartographFigure() {
         </section>
         <i className="track-line" aria-hidden="true"/>
         <section className="sequence-stage projection-stage" aria-hidden="true">
-          <header><span>04 · deterministic</span><p>Projections</p></header>
+          <header><span>deterministic</span><p>Projections</p></header>
           <div className="projection-list">
             {PROJECTIONS.map((item) => <span className="projection-row" key={item}><i className="ui-port projection-port"/>{item}</span>)}
           </div>
@@ -606,9 +614,9 @@ function CartographDesignLayer({ onBack, backRef }) {
           <button ref={backRef} className="text-action design-back" data-motion="heading" onClick={onBack} aria-label="Back to Cartograph overview">
             <span aria-hidden="true">←</span> Overview
           </button>
-          <h1 id="cartograph-title" data-motion="heading">Cartograph</h1>
+          <h1 id="cartograph-title" data-motion="heading">Design</h1>
         </div>
-        <p data-motion="text">Each projection is a designed loss of information: a hypothesis about what orients an agent, and a tradeoff in what it conceals.</p>
+        <p data-motion="text">Each projection has a hypothesis — what it is for — and a tradeoff — what it conceals.</p>
       </div>
       <div className="design-projections">
         {DESIGN_PROJECTIONS.map((item) => (
@@ -630,17 +638,26 @@ function CartographDesignLayer({ onBack, backRef }) {
           </article>
         ))}
       </div>
-      <section className="design-boundary" data-motion="visual">
+    </div>
+  );
+}
+
+function CartographBoundaryLayer({ onBack, backRef }) {
+  return (
+    <div className="cartograph-design">
+      <div className="cartograph-design-heading">
         <div>
-          <header>
-            <span>comparison</span>
-            <p>Information boundary</p>
-          </header>
-          <p className="design-boundary-copy">What each projection retains from source. Implementation stays in the files themselves.</p>
-          <div className="chart-key" aria-hidden="true">
-            <span><i className="key-on"/>Retained</span>
-            <span><i className="key-off"/>Omitted</span>
-          </div>
+          <button ref={backRef} className="text-action design-back" data-motion="heading" onClick={onBack} aria-label="Back to Cartograph overview">
+            <span aria-hidden="true">←</span> Overview
+          </button>
+          <h1 id="cartograph-title" data-motion="heading">Information boundary</h1>
+        </div>
+        <p data-motion="text">What Architecture, Skeleton, and Graph retain from source. Implementation stays in the files themselves.</p>
+      </div>
+      <section className="design-boundary" data-motion="visual">
+        <div className="chart-key" aria-hidden="true">
+          <span><i className="key-on"/>Retained</span>
+          <span><i className="key-off"/>Omitted</span>
         </div>
         <div className="boundary-scroll">
           <table className="boundary-matrix">
@@ -677,7 +694,9 @@ function CartographView({ overviewTick = 0 }) {
   const [displayedLayer, setDisplayedLayer] = useState('overview');
   const layerRef = useRef(null);
   const learnRef = useRef(null);
+  const boundaryRef = useRef(null);
   const backRef = useRef(null);
+  const openerRef = useRef('learn');
   const transitionRef = useRef(null);
   const transitionId = useRef(0);
   const skipEntrance = useRef(true);
@@ -685,10 +704,11 @@ function CartographView({ overviewTick = 0 }) {
   const moveFocus = useRef(false);
   const showLayerRef = useRef(() => {});
 
-  const showLayer = (next, { focus = false } = {}) => {
+  const showLayer = (next, { focus = false, opener } = {}) => {
     if (next === displayedLayer) return;
     hasLayered.current = true;
     moveFocus.current = focus;
+    if (opener) openerRef.current = opener;
     const id = transitionId.current + 1;
     transitionId.current = id;
     transitionRef.current?.kill();
@@ -749,7 +769,7 @@ function CartographView({ overviewTick = 0 }) {
   }, [overviewTick]);
 
   useEffect(() => {
-    if (displayedLayer !== 'design') return undefined;
+    if (displayedLayer === 'overview') return undefined;
     const onKey = (event) => {
       if (event.key === 'Escape') showLayerRef.current('overview', { focus: true });
     };
@@ -759,8 +779,11 @@ function CartographView({ overviewTick = 0 }) {
 
   useEffect(() => {
     if (!hasLayered.current || !moveFocus.current) return;
-    if (displayedLayer === 'design') backRef.current?.focus();
-    else learnRef.current?.focus();
+    if (displayedLayer === 'overview') {
+      (openerRef.current === 'boundary' ? boundaryRef : learnRef).current?.focus();
+    } else {
+      backRef.current?.focus();
+    }
   }, [displayedLayer]);
 
   useEffect(() => () => transitionRef.current?.kill(), []);
@@ -768,7 +791,7 @@ function CartographView({ overviewTick = 0 }) {
   return (
     <ViewFrame
       id="cartograph"
-      className={displayedLayer === 'design' ? 'cartograph-design-view' : 'cartograph-view'}
+      className={displayedLayer === 'overview' ? 'cartograph-view' : 'cartograph-design-view'}
       rootRef={layerRef}
     >
       {displayedLayer === 'overview' ? (
@@ -778,15 +801,24 @@ function CartographView({ overviewTick = 0 }) {
             title="Cartograph"
             statement="The structural analysis system used inside MapBench."
             action={(
-              <button
-                ref={learnRef}
-                className="text-action"
-                data-motion="text"
-                onClick={(event) => showLayer('design', { focus: event.detail === 0 })}
-                aria-label="Learn about Cartograph projection design"
-              >
-                Learn about design <span aria-hidden="true">→</span>
-              </button>
+              <div className="cartograph-actions" data-motion="text">
+                <button
+                  ref={learnRef}
+                  className="text-action"
+                  onClick={(event) => showLayer('design', { focus: event.detail === 0, opener: 'learn' })}
+                  aria-label="Learn about Cartograph projection design"
+                >
+                  Learn about design <span aria-hidden="true">→</span>
+                </button>
+                <button
+                  ref={boundaryRef}
+                  className="text-action"
+                  onClick={(event) => showLayer('boundary', { focus: event.detail === 0, opener: 'boundary' })}
+                  aria-label="View Cartograph information boundary"
+                >
+                  Information boundary <span aria-hidden="true">→</span>
+                </button>
+              </div>
             )}
           >
             <p>Cartograph uses Tree-sitter to parse source code into a canonical representation of modules, symbols, locations, and typed relationships.</p>
@@ -795,8 +827,10 @@ function CartographView({ overviewTick = 0 }) {
           </ResearchCopy>
           <CartographFigure/>
         </div>
-      ) : (
+      ) : displayedLayer === 'design' ? (
         <CartographDesignLayer onBack={(event) => showLayer('overview', { focus: event.detail === 0 })} backRef={backRef}/>
+      ) : (
+        <CartographBoundaryLayer onBack={(event) => showLayer('overview', { focus: event.detail === 0 })} backRef={backRef}/>
       )}
     </ViewFrame>
   );
@@ -867,7 +901,7 @@ function BenchmarkFigure() {
       <figcaption className="sr-only">Cartograph generates structural artifacts, five representation conditions are compared through repeated controlled runs, and tokens, runtime, cost, and navigation behavior are measured.</figcaption>
       <div className="benchmark-track" aria-hidden="true">
         <section className="benchmark-generation-stage">
-          <header><span>01 · Cartograph</span><p>Generate artifacts</p></header>
+          <header><span>Cartograph</span><p>Generate artifacts</p></header>
           <div className="benchmark-cartograph-card"><strong>Cartograph</strong><span>canonical IR</span></div>
           <div className="benchmark-artifacts">
             {BENCHMARK_ARTIFACTS.map((artifact) => <span className="benchmark-artifact" key={artifact}>{artifact}</span>)}
@@ -875,20 +909,20 @@ function BenchmarkFigure() {
         </section>
         <i className="benchmark-line"/>
         <section className="condition-list">
-          <header><span>02 · variable</span><p>Representation</p></header>
+          <header><span>variable</span><p>Representation</p></header>
           {CONDITIONS.map((condition) => <div className="condition-row" key={condition}><span>{condition}</span><i className="ui-port condition-port"/></div>)}
         </section>
         <i className="benchmark-line"/>
         <section className="run-bank">
-          <header><span>03 · controlled</span><p>Repeated runs</p></header>
-          <div className="fixed-setup"><span>same model</span><span>task</span><span>tools</span></div>
+          <header><span>controlled</span><p>Repeated runs</p></header>
+          <div className="fixed-setup"><span>model</span><span>task</span><span>tools</span><span>repo</span><span>env</span></div>
           <div className="run-slots">
             {['01', '02', '03'].map((run) => <span className="run-slot" key={run}><i className="ui-dot run-target"/><b>{run}</b></span>)}
           </div>
         </section>
         <i className="benchmark-line"/>
         <section className="measure-stage">
-          <header><span>04 · analyze</span><p>Measures</p></header>
+          <header><span>analyze</span><p>Measures</p></header>
           <div className="measure-list">
             {BENCHMARK_MEASURES.map((measure, index) => <span className="measure-row" key={measure}><i className={'ui-port measure-dot ' + (index === 0 ? 'measures-port' : '')}/>{measure}</span>)}
           </div>
@@ -909,6 +943,423 @@ function BenchmarkView() {
         <p className="measure-summary">Tokens · Runtime · Cost · Navigation behavior</p>
       </ResearchCopy>
       <BenchmarkFigure/>
+    </ViewFrame>
+  );
+}
+
+const EXPERIMENT_SECTIONS = [
+  { id: 'questions', label: 'Questions' },
+  { id: 'setup', label: 'Setup' },
+  { id: 'models-harness', label: 'Models & Harness' },
+];
+
+function TechnicalDetails({ label, children }) {
+  return (
+    <details className="technical-details">
+      <summary>{label}<span aria-hidden="true">+</span></summary>
+      <div className="technical-details-body">{children}</div>
+    </details>
+  );
+}
+
+function ExperimentSection({ number, id, title, statement, children, visual, details }) {
+  return (
+    <section className="experiment-section two-column" id={id} aria-labelledby={`${id}-title`}>
+      <div className="experiment-section-copy">
+        <span className="section-number">{number}</span>
+        <h2 id={`${id}-title`}>{title}</h2>
+        <p className="section-statement">{statement}</p>
+        <div className="copy-body">{children}</div>
+        {details}
+      </div>
+      {visual}
+    </section>
+  );
+}
+
+const RESEARCH_QUESTIONS = [
+  { id: 'RQ1', type: 'Primary', question: 'Does access to deterministic structural artifacts improve coding-task completion?' },
+  { id: 'RQ2', type: 'Efficiency', question: 'How does access affect token usage and completion time?' },
+  { id: 'RQ3', type: 'Behavior', question: 'How does access affect repository navigation and agent trajectories?' },
+  { id: 'RQ4', type: 'Overhead', question: 'Do additional artifacts create context-management costs that offset their navigation benefits?' },
+];
+
+const SETUP_STAGES = ['Condition', 'Access', 'Trials', 'Agent', 'Outputs', 'Aggregate'];
+const SETUP_STAGE_DURATION = 5600;
+
+function ResearchQuestions() {
+  return (
+    <ol className="research-question-list" aria-label="Research questions">
+      {RESEARCH_QUESTIONS.map((item) => (
+        <li key={item.id}>
+          <span><b>{item.id}</b> · {item.type}</span>
+          <p>{item.question}</p>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function ExperimentSetupFigure() {
+  const ref = useRef(null);
+  const [activeStage, setActiveStage] = useState(0);
+  const [stageCycle, setStageCycle] = useState(0);
+
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
+    const timer = window.setTimeout(() => {
+      setActiveStage((current) => (current + 1) % SETUP_STAGES.length);
+      setStageCycle((cycle) => cycle + 1);
+    }, SETUP_STAGE_DURATION);
+    return () => window.clearTimeout(timer);
+  }, [activeStage, stageCycle]);
+
+  useEffect(() => {
+    const progress = q(ref.current, '.setup-progress');
+    const activeControl = qa(progress, 'button')[activeStage];
+    if (!progress || !activeControl || progress.scrollWidth <= progress.clientWidth) return;
+    const targetLeft = activeControl.offsetLeft - (progress.clientWidth - activeControl.offsetWidth) / 2;
+    progress.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
+  }, [activeStage]);
+
+  useLayoutEffect(() => {
+    const root = ref.current;
+    if (!root || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
+    const phase = q(root, `.setup-phase[data-stage="${activeStage}"]`);
+    const context = gsap.context(() => {
+      gsap.killTweensOf(qa(root, '.setup-phase, .setup-phase *'));
+      gsap.set(qa(root, '.setup-phase'), { autoAlpha: 0, y: 7, pointerEvents: 'none' });
+      gsap.set(phase, { autoAlpha: 1, y: 0 });
+      gsap.set(phase, { pointerEvents: 'auto' });
+      gsap.fromTo(q(root, '.setup-countdown-fill'), { scaleX: 0 }, { scaleX: 1, duration: SETUP_STAGE_DURATION / 1000, ease: 'none' });
+      const tl = gsap.timeline({ defaults: { ease: 'power1.inOut' } });
+      tl.fromTo(q(phase, 'header'), { opacity: 0, y: 5 }, { opacity: 1, y: 0, duration: 0.35 });
+
+      if (activeStage === 0) {
+        const choices = qa(phase, '.condition-choice');
+        tl.fromTo(choices, { opacity: 0.22 }, { opacity: 0.58, duration: 0.3, stagger: 0.1 })
+          .to(choices[choices.length - 1], { opacity: 1, backgroundColor: '#dedede', color: '#202020', duration: 0.35 })
+          .fromTo(q(phase, '.condition-token'), { x: -80, opacity: 0 }, { x: 0, opacity: 1, duration: 0.7, ease: 'none' });
+      } else if (activeStage === 1) {
+        const token = q(phase, '.access-token');
+        const prompt = q(phase, '.access-prompt');
+        const artifact = q(phase, '.access-artifact');
+        tl.fromTo(prompt, { opacity: 0.28 }, { opacity: 1, duration: 0.35 })
+          .fromTo(token, { x: 0, opacity: 0 }, { x: 112, opacity: 1, duration: 0.75, ease: 'none' })
+          .to(artifact, { opacity: 1, backgroundColor: '#dedede', duration: 0.3 }, '-=0.1')
+          .to(token, { opacity: 0, duration: 0.12 });
+      } else if (activeStage === 2) {
+        const sandboxes = qa(phase, '.trial-sandbox');
+        tl.fromTo(sandboxes, { opacity: 0, x: -18 }, { opacity: 1, x: 0, duration: 0.4, stagger: 0.22 })
+          .fromTo(qa(phase, '.trial-pulse'), { scale: 0.5, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.28, stagger: 0.12 });
+      } else if (activeStage === 3) {
+        const track = q(phase, '.agent-stage-track');
+        const token = q(phase, '.agent-stage-token');
+        const nodes = qa(phase, '.agent-stage-node');
+        gsap.set(nodes, { opacity: 0.45 });
+        tl.to(nodes[0], { opacity: 1, duration: 0.22 })
+          .set(token, { ...place(token, point(track, nodes[0])), opacity: 1 })
+          .to(token, { ...place(token, point(track, nodes[1])), duration: 0.55, ease: 'none' })
+          .to(nodes[1], { opacity: 1, duration: 0.18 }, '-=0.12')
+          .to(token, { ...place(token, point(track, nodes[2])), duration: 0.65, ease: 'none' })
+          .to(nodes[2], { opacity: 1, duration: 0.18 }, '-=0.12')
+          .to(token, { ...place(token, point(track, nodes[3])), duration: 0.62, ease: 'none' })
+          .to(nodes[3], { opacity: 1, duration: 0.18 }, '-=0.12')
+          .to(token, { ...place(token, point(track, nodes[1])), duration: 0.85, ease: 'none' });
+      } else if (activeStage === 4) {
+        tl.fromTo(qa(phase, '.trace-line i'), { scaleX: 0 }, { scaleX: 1, duration: 0.55, stagger: 0.16 })
+          .fromTo(qa(phase, '.trial-output'), { opacity: 0.25 }, { opacity: 1, duration: 0.25, stagger: 0.1 });
+      } else {
+        const dots = qa(phase, '.aggregate-dot');
+        const dotOffset = Math.min(34, phase.clientWidth / 12);
+        tl.fromTo(dots, { opacity: 0, x: (index) => (index - 2.5) * dotOffset }, { opacity: 1, x: 0, duration: 0.65, stagger: 0.08 })
+          .fromTo(q(phase, '.aggregate-mean'), { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.35 })
+          .fromTo(qa(phase, '.aggregate-label'), { opacity: 0 }, { opacity: 1, duration: 0.22, stagger: 0.08 });
+      }
+    }, root);
+    return () => context.revert();
+  }, [activeStage, stageCycle]);
+
+  const chooseStage = (index) => {
+    const validIndex = Math.min(SETUP_STAGES.length - 1, Math.max(0, index));
+    setActiveStage(validIndex);
+    setStageCycle((cycle) => cycle + 1);
+  };
+
+  const handleStageKeyDown = (event, index) => {
+    const keyOffset = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
+    const targetIndex = event.key === 'Home'
+      ? 0
+      : event.key === 'End'
+        ? SETUP_STAGES.length - 1
+        : keyOffset
+          ? (index + keyOffset + SETUP_STAGES.length) % SETUP_STAGES.length
+          : null;
+    if (targetIndex === null) return;
+    event.preventDefault();
+    chooseStage(targetIndex);
+    qa(ref.current, '.setup-progress button')[targetIndex]?.focus();
+  };
+
+  return (
+    <figure className="method-figure setup-figure" ref={ref}>
+      <figcaption className="sr-only">A condition determines prompt and artifact access, launches three independent Modal trials, runs Pi on a DeepSWE task, captures per-trial traces and results, then aggregates experiment metrics.</figcaption>
+      <div className="setup-progress" role="tablist" aria-label="Experiment sequence">
+        {SETUP_STAGES.map((label, index) => (
+          <button key={label} id={`setup-stage-tab-${index}`} type="button" role="tab" aria-controls={`setup-stage-panel-${index}`} aria-selected={activeStage === index} tabIndex={activeStage === index ? 0 : -1} className={activeStage === index ? 'active' : ''} onClick={() => chooseStage(index)} onKeyDown={(event) => handleStageKeyDown(event, index)}>
+            <i><em className={activeStage === index ? 'setup-countdown-fill' : ''}/></i><span>{String(index + 1).padStart(2, '0')} · {label}</span>
+          </button>
+        ))}
+      </div>
+      <div className="setup-phase-stack">
+        <section id="setup-stage-panel-0" aria-labelledby="setup-stage-tab-0" aria-hidden={activeStage !== 0} className={`setup-phase configure-phase ${activeStage === 0 ? 'active' : ''}`} data-stage="0" role="tabpanel">
+          <header><span>01 · condition</span><strong>Select structural access</strong></header>
+          <div className="condition-choice-row" aria-hidden="true">{['Control', 'Single artifact', 'Combined'].map((condition) => <span className="condition-choice" key={condition}>{condition}</span>)}</div>
+          <div className="condition-selected" aria-hidden="true"><i className="condition-token"/><span>Combined selected</span></div>
+          <p>Only the representation condition changes.</p>
+        </section>
+        <section id="setup-stage-panel-1" aria-labelledby="setup-stage-tab-1" aria-hidden={activeStage !== 1} className={`setup-phase access-phase ${activeStage === 1 ? 'active' : ''}`} data-stage="1" role="tabpanel">
+          <header><span>02 · prompt / artifact access</span><strong>The condition configures what Pi can see</strong></header>
+          <div className="access-motion" aria-hidden="true"><div className="access-prompt"><span>system prompt</span><b>Artifacts available</b></div><i className="access-token"/><div className="access-artifact"><span>workspace</span><b>repo + Cartograph</b></div></div>
+          <p>Control receives none; ablations receive one artifact; Combined receives the complete representation.</p>
+        </section>
+        <section id="setup-stage-panel-2" aria-labelledby="setup-stage-tab-2" aria-hidden={activeStage !== 2} className={`setup-phase launch-phase ${activeStage === 2 ? 'active' : ''}`} data-stage="2" role="tabpanel">
+          <header><span>03 · Modal trials</span><strong>One fixed task environment, repeated independently</strong></header>
+          <div className="trial-launch" aria-hidden="true">{['1', '2', '3'].map((trial) => <div className="trial-sandbox" key={trial}><i className="trial-pulse"/><span>Modal · {trial}</span><b>DeepSWE task</b></div>)}</div>
+          <p><b>3 trials per task per condition</b> · isolated and executed in parallel.</p>
+        </section>
+        <section id="setup-stage-panel-3" aria-labelledby="setup-stage-tab-3" aria-hidden={activeStage !== 3} className={`setup-phase agent-phase ${activeStage === 3 ? 'active' : ''}`} data-stage="3" role="tabpanel">
+          <header><span>04 · agent execution</span><strong>Pi performs the assigned DeepSWE task</strong></header>
+          <div className="agent-stage-track" aria-hidden="true">{['Model', 'Pi', 'tools / repo', 'observation'].map((node) => <span className="agent-stage-node" key={node}>{node}</span>)}<i className="agent-stage-token"/></div>
+          <p>Pi sees the repository plus only the artifacts allowed by the condition.</p>
+        </section>
+        <section id="setup-stage-panel-4" aria-labelledby="setup-stage-tab-4" aria-hidden={activeStage !== 4} className={`setup-phase outputs-phase ${activeStage === 4 ? 'active' : ''}`} data-stage="4" role="tabpanel">
+          <header><span>05 · traces / results</span><strong>Every trial produces outcome and behavioral evidence</strong></header>
+          <div className="trial-outputs" aria-hidden="true">{['01', '02', '03'].map((trial) => <div className="trial-output" key={trial}><span>trial {trial}</span><div className="trace-line"><i/><i/><i/></div><b>trace · result · usage</b></div>)}</div>
+          <p>Complete per-trial data remains available before aggregation.</p>
+        </section>
+        <section id="setup-stage-panel-5" aria-labelledby="setup-stage-tab-5" aria-hidden={activeStage !== 5} className={`setup-phase aggregate-phase ${activeStage === 5 ? 'active' : ''}`} data-stage="5" role="tabpanel">
+          <header><span>06 · aggregate metrics</span><strong>Repeated trials become matched comparisons</strong></header>
+          <div className="aggregate-plot" aria-hidden="true"><div>{[0, 1, 2, 3, 4, 5].map((dot) => <i className="aggregate-dot" key={dot}/>)}</div><b className="aggregate-mean"/><span className="aggregate-label">mean</span></div>
+          <div className="aggregate-labels" aria-hidden="true">{['grader', 'tokens', 'runtime', 'cost', 'context', 'navigation'].map((label) => <span className="aggregate-label" key={label}>{label}</span>)}</div>
+          <p>Averages and distributions across repeated trials.</p>
+        </section>
+      </div>
+    </figure>
+  );
+}
+
+function BenchmarkEvidenceFigure() {
+  const ref = useRef(null);
+  const stages = [
+    ['source', 'DeepSWE task'],
+    ['workspace', 'Real repository'],
+    ['execution', 'Agent run'],
+    ['evidence', 'Grader + trajectory'],
+    ['output', 'Run evidence'],
+  ];
+  const measurements = ['task accuracy / grader', 'token spend', 'runtime / speed', 'context utilization', 'compaction behavior', 'cost', 'tool / file trajectory'];
+
+  useCausalTimeline(ref, (root) => {
+    const track = q(root, '.evidence-flow');
+    const nodes = qa(root, '.evidence-node');
+    const token = q(root, '.evidence-token');
+    const measurements = qa(root, '.evidence-measure');
+    const trace = q(root, '.benchmark-trace');
+    const traceNodes = qa(root, '.benchmark-trace-node');
+    const traceToken = q(root, '.benchmark-trace-token');
+    gsap.set(nodes, { opacity: 0.48, backgroundColor: '#f5f5f5', color: '#777777' });
+    gsap.set([...measurements, ...traceNodes], { opacity: 0.38, backgroundColor: '#f5f5f5', color: '#777777' });
+    gsap.set([token, traceToken], { opacity: 0 });
+    const tl = gsap.timeline({ repeat: -1, repeatDelay: 1.4, defaults: { ease: 'power1.inOut' } });
+    tl.to(nodes[0], { opacity: 1, backgroundColor: '#dedede', color: '#202020', duration: 0.2 })
+      .set(token, { ...place(token, point(track, q(nodes[0], '.evidence-port'))), opacity: 1 });
+    nodes.slice(1).forEach((node) => {
+      tl.to(token, { ...place(token, point(track, q(node, '.evidence-port'))), duration: 0.48, ease: 'none' })
+        .to(node, { opacity: 1, backgroundColor: '#dedede', color: '#202020', duration: 0.16 }, '-=0.12');
+    });
+    tl.to(token, { opacity: 0, duration: 0.12 })
+      .to(measurements, { opacity: 1, backgroundColor: '#ededed', color: '#202020', duration: 0.12, stagger: 0.07 })
+      .set(traceToken, { ...place(traceToken, point(trace, q(traceNodes[0], '.benchmark-trace-port'))), opacity: 1 })
+      .to(traceNodes[0], { opacity: 1, backgroundColor: '#dedede', color: '#202020', duration: 0.14 });
+    traceNodes.slice(1).forEach((node) => {
+      tl.to(traceToken, { ...place(traceToken, point(trace, q(node, '.benchmark-trace-port'))), duration: 0.38, ease: 'none' })
+        .to(node, { opacity: 1, backgroundColor: '#dedede', color: '#202020', duration: 0.13 }, '-=0.1');
+    });
+    tl.set(traceToken, { opacity: 0 })
+      .to({}, { duration: 1.15 })
+      .set(nodes, { opacity: 0.48, backgroundColor: '#f5f5f5', color: '#777777' })
+      .set([...measurements, ...traceNodes], { opacity: 0.38, backgroundColor: '#f5f5f5', color: '#777777' });
+  });
+
+  return (
+    <figure className="method-figure benchmark-evidence-figure" ref={ref}>
+      <figcaption className="sr-only">A DeepSWE task enters a real repository and agent run. The grader and trajectory produce run evidence that fans into outcome, token, runtime, context, compaction, cost, and navigation measurements. Pi sessions are normalized into metrics for condition comparison.</figcaption>
+      <div className="evidence-flow" aria-hidden="true">
+        {stages.map(([kicker, title], index) => <React.Fragment key={title}><div className="evidence-node"><span>{kicker}</span><strong>{title}</strong><i className="ui-dot evidence-port"/></div>{index < stages.length - 1 && <i className="evidence-connector"/>}</React.Fragment>)}
+        <span className="motion-token evidence-token"/>
+      </div>
+      <div className="evidence-output" aria-hidden="true">
+        <span className="evidence-output-label">measurements</span>
+        <div className="evidence-measures">{measurements.map((measurement) => <span className="evidence-measure" key={measurement}><i/>{measurement}</span>)}</div>
+      </div>
+      <div className="benchmark-trace" aria-hidden="true">
+        {['Pi session', 'normalized trace', 'run metrics', 'condition comparison'].map((item, index) => <React.Fragment key={item}><span className="benchmark-trace-node"><i className="ui-dot benchmark-trace-port"/>{item}</span>{index < 3 && <b>→</b>}</React.Fragment>)}
+        <span className="motion-token benchmark-trace-token"/>
+      </div>
+    </figure>
+  );
+}
+
+const FROZEN_MODELS = [
+  { short: 'GPT-5.6 Luna', effort: 'max' },
+  { short: 'Claude Opus 5', effort: 'medium' },
+  { short: 'DeepSeek V4 Flash 0731', effort: 'max' },
+];
+
+function ModelsHarnessFigure() {
+  const ref = useRef(null);
+
+  useCausalTimeline(ref, (root) => {
+    const orbit = q(root, '.harness-orbit');
+    const model = q(root, '.loop-model-source');
+    const modelLabel = q(model, 'strong');
+    const modelEffort = q(model, 'small');
+    const pi = q(root, '.orbit-pi');
+    const action = q(root, '.orbit-action');
+    const tools = q(root, '.orbit-tools');
+    const observation = q(root, '.orbit-observation');
+    const token = q(root, '.orbit-token');
+    const orbitState = { angle: 180 };
+    const positionToken = () => {
+      const size = orbit.clientWidth;
+      const radius = size * (124 / 360);
+      const radians = orbitState.angle * (Math.PI / 180);
+      gsap.set(token, {
+        x: size / 2 + Math.cos(radians) * radius - token.offsetWidth / 2,
+        y: size / 2 + Math.sin(radians) * radius - token.offsetHeight / 2,
+      });
+    };
+    gsap.set([pi, action, tools, observation], { opacity: 0.48, backgroundColor: '#f5f5f5', color: '#777777' });
+    gsap.set(token, { opacity: 0 });
+
+    const tl = gsap.timeline({ repeat: -1, repeatDelay: 1.4, defaults: { ease: 'power1.inOut' } });
+    FROZEN_MODELS.forEach((configuration) => {
+      tl.set(modelLabel, { textContent: configuration.short })
+        .set(modelEffort, { textContent: configuration.effort })
+        .set(orbitState, { angle: 180 })
+        .fromTo(model, { opacity: 0.38 }, { opacity: 1, duration: 0.25 })
+        .to(pi, { opacity: 1, backgroundColor: '#dedede', color: '#202020', duration: 0.22 })
+        .call(positionToken)
+        .set(token, { opacity: 1 })
+        .to(orbitState, { angle: 270, duration: 0.72, ease: 'none', onUpdate: positionToken })
+        .to(action, { opacity: 1, backgroundColor: '#dedede', color: '#202020', duration: 0.12 }, '-=0.12')
+        .to(orbitState, { angle: 360, duration: 0.72, ease: 'none', onUpdate: positionToken })
+        .to(tools, { opacity: 1, backgroundColor: '#dedede', color: '#202020', duration: 0.12 }, '-=0.12')
+        .to(orbitState, { angle: 450, duration: 0.72, ease: 'none', onUpdate: positionToken })
+        .to(observation, { opacity: 1, backgroundColor: '#dedede', color: '#202020', duration: 0.12 }, '-=0.12')
+        .to(orbitState, { angle: 540, duration: 0.72, ease: 'none', onUpdate: positionToken })
+        .set(token, { opacity: 0 })
+        .to({}, { duration: 0.7 })
+        .to(model, { opacity: 0.38, duration: 0.16 })
+        .set([pi, action, tools, observation], { opacity: 0.48, backgroundColor: '#f5f5f5', color: '#777777' });
+    });
+    return tl;
+  });
+
+  return (
+    <figure className="method-figure models-harness-figure" ref={ref}>
+      <figcaption className="sr-only">The configured model feeds a fixed circular Pi loop. Pi acts through repository tools, receives an observation, and repeats while the harness remains unchanged.</figcaption>
+      <div className="loop-model-source" aria-hidden="true">
+        <span>configured model</span><strong>{FROZEN_MODELS[0].short}</strong><small>{FROZEN_MODELS[0].effort}</small>
+      </div>
+      <i className="model-feed-line" aria-hidden="true"/>
+      <div className="harness-orbit" aria-hidden="true">
+        <svg viewBox="0 0 360 360"><circle cx="180" cy="180" r="124"/></svg>
+        <div className="orbit-node orbit-pi"><span>fixed harness</span><strong>Pi 0.84.1</strong></div>
+        <div className="orbit-node orbit-action"><span>agent</span><strong>act</strong></div>
+        <div className="orbit-node orbit-tools"><span>workspace</span><strong>tools / repo</strong></div>
+        <div className="orbit-node orbit-observation"><span>return</span><strong>observation</strong></div>
+        <i className="motion-token orbit-token"/>
+      </div>
+    </figure>
+  );
+}
+
+function ExperimentView() {
+  const [activeSection, setActiveSection] = useState('questions');
+
+  useEffect(() => {
+    const sections = EXPERIMENT_SECTIONS.map(({ id }) => document.getElementById(id)).filter(Boolean);
+    const updateActiveSection = () => {
+      const position = window.scrollY + 190;
+      const current = [...sections].reverse().find((section) => section.offsetTop <= position);
+      setActiveSection(current?.id || 'questions');
+    };
+    updateActiveSection();
+    window.addEventListener('scroll', updateActiveSection, { passive: true });
+    window.addEventListener('resize', updateActiveSection);
+    return () => {
+      window.removeEventListener('scroll', updateActiveSection);
+      window.removeEventListener('resize', updateActiveSection);
+    };
+  }, []);
+
+  const goToSection = (event, id) => {
+    event.preventDefault();
+    document.getElementById(id)?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+  };
+
+  return (
+    <ViewFrame id="experiment" className="experiment-view">
+      <div className="experiment-hero two-column">
+        <ResearchCopy id="experiment" title="Experiment" statement="Test whether structural representations change how coding agents understand and work through repositories.">
+          <p>Cartograph artifacts define the experimental condition. Every condition is run repeatedly under fixed controls, then evaluated through outcomes and complete agent traces.</p>
+          <p className="measure-summary">Artifacts → Condition → Repeated runs → Measurements</p>
+        </ResearchCopy>
+        <BenchmarkFigure/>
+      </div>
+
+      <nav className="experiment-local-nav" aria-label="Experiment sections">
+        <div>
+          {EXPERIMENT_SECTIONS.map((section) => <a key={section.id} href={`#${section.id}`} className={activeSection === section.id ? 'active' : ''} aria-current={activeSection === section.id ? 'location' : undefined} onClick={(event) => goToSection(event, section.id)}>{section.label}</a>)}
+        </div>
+      </nav>
+
+      <div className="experiment-story">
+        <ExperimentSection
+          number="01"
+          id="questions"
+          title="Questions"
+          statement="Four questions define the comparison and the evidence collected from every run."
+          visual={<ResearchQuestions/>}
+        />
+
+        <ExperimentSection
+          number="02"
+          id="setup"
+          title="Setup"
+          statement="Only the structural-artifact condition changes. The task system and execution policy remain fixed."
+          visual={<ExperimentSetupFigure/>}
+          details={<TechnicalDetails label="Condition specification"><p><strong>Control:</strong> regular repository code with no generated structural artifact.</p><p><strong>Individual ablations:</strong> Architecture, Skeleton, and Call graph supplied one at a time.</p><p><strong>Combined:</strong> all three Cartograph artifacts supplied together.</p><p>Task, repository commit, model, Pi harness, prompt and tools, limits, environment, repetition count, ordering, and randomization are frozen before execution.</p></TechnicalDetails>}
+        >
+          <p>A condition-specific instruction states whether structural artifacts are available; the workspace exposes only what that condition permits.</p>
+          <p>Modal provides isolated, reproducible execution, limits local-machine performance as a runtime confound, and runs trials in parallel.</p>
+          <p><strong>Three trials per task per condition</strong> capture variation between stochastic agent trajectories.</p>
+        </ExperimentSection>
+
+        <ExperimentSection
+          number="03"
+          id="models-harness"
+          title="Models & Harness"
+          statement="The model configuration and Pi harness remain fixed within each matched experimental run."
+          visual={<ModelsHarnessFigure/>}
+          details={<TechnicalDetails label="Reproduction details"><dl className="reproduction-list"><div><dt>GPT-5.6 Luna</dt><dd>openrouter · openai/gpt-5.6-luna · canonical 20260709 · max · 1,050,000 context</dd></div><div><dt>Claude Opus 5</dt><dd>openrouter · anthropic/claude-opus-5 · canonical 20260723 · medium · 1,000,000 context</dd></div><div><dt>DeepSeek V4 Flash</dt><dd>openrouter · deepseek/deepseek-v4-flash-0731 · canonical 20260731 · max · 1,048,576 context</dd></div><div><dt>Harness</dt><dd>Pi 0.84.1 · fresh process · no session resume · ambient context disabled</dd></div><div><dt>DeepSWE source</dt><dd>v1.1 · revision 435ee89ec2f2e2289f33b0da4f992f0b7b7266b9</dd></div><div><dt>Run policy</dt><dd>3 repetitions · targeted 5-condition matrix · identical tools, prompt suffix, limits + randomization</dd></div><div><dt>Timeout</dt><dd>5,400 seconds for DeepSWE unless task environment is lower</dd></div><div><dt>Modal</dt><dd>SDK 0.9.0 · app mapbench · fresh no-network task image · placement + concurrency recorded</dd></div><div><dt>Provenance</dt><dd>prompt/config hashes, repository commit, image, model metadata, complete JSONL + normalized trajectory</dd></div></dl></TechnicalDetails>}
+        >
+          <div className="frozen-choice"><span>Models</span><p><strong>GPT-5.6 Luna · max</strong><small>Primary general model; strong DeepSWE performance.</small></p><p><strong>Claude Opus 5 · medium</strong><small>Replication model with efficient trajectories.</small></p><p><strong>DeepSeek V4 Flash 0731 · max</strong><small>Lower-cost replication with a different runtime profile.</small></p></div>
+          <div className="frozen-choice"><span>Harness</span><p><strong>Pi 0.84.1</strong><small>Small inspectable loop with complete trajectory capture.</small></p></div>
+        </ExperimentSection>
+      </div>
     </ViewFrame>
   );
 }
@@ -1218,11 +1669,11 @@ function ExperimentsFigure() {
   );
 }
 
-function ExperimentsView() {
+function ResultsView() {
   return (
-    <ViewFrame id="experiments" className="experiments-view">
+    <ViewFrame id="results" className="experiments-view">
       <div className="experiments-heading">
-        <h1 id="experiments-title" data-motion="heading">Experiments</h1>
+        <h1 id="results-title" data-motion="heading">Results</h1>
         <p data-motion="text">Controlled runs across repository representations.</p>
       </div>
       <ExperimentsFigure/>
@@ -1230,10 +1681,71 @@ function ExperimentsView() {
   );
 }
 
+const FUTURE_GROUPS = [
+  {
+    label: 'Test',
+    items: [
+      { title: 'Broader evidence', copy: 'More models, harnesses, repositories, task families, languages, and larger repeated samples.' },
+    ],
+  },
+  {
+    label: 'Investigate',
+    items: [
+      { title: 'Representation value', copy: 'Determine which artifacts, relationships, formats, and levels of detail actually change agent behavior.' },
+      { title: 'Retrieval & overhead', copy: 'Compare eager context with selective retrieval and study utilization, compaction, and navigation tradeoffs.' },
+    ],
+  },
+  {
+    label: 'Build',
+    items: [
+      { title: 'New structural views', copy: 'Implement representations and relationships suggested by trial trajectories, failure analysis, and future research.' },
+    ],
+  },
+];
+
+function FutureFigure() {
+  return (
+    <section className="future-roadmap" data-motion="visual" aria-label="Future research roadmap">
+      {FUTURE_GROUPS.map((group) => (
+        <section className={`future-group future-${group.label.toLowerCase()}`} key={group.label} aria-labelledby={`future-${group.label.toLowerCase()}-title`}>
+          <h2 id={`future-${group.label.toLowerCase()}-title`}>{group.label}</h2>
+          <div className="future-group-items">
+            {group.items.map((item) => (
+              <article className="future-item" key={item.title}>
+                <h3>{item.title}</h3>
+                <p>{item.copy}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+      ))}
+    </section>
+  );
+}
+
+function FutureView() {
+  return (
+    <ViewFrame id="future" className="future-view">
+      <div className="two-column">
+        <ResearchCopy
+          id="future"
+          title="Future Work"
+          statement="The first study establishes a controlled baseline; follow-up work broadens the evidence and tests what the observed trajectories suggest."
+        >
+          <p>The roadmap separates validation, open research questions, and the representations they may motivate.</p>
+        </ResearchCopy>
+        <FutureFigure/>
+      </div>
+    </ViewFrame>
+  );
+}
+
 function App() {
   const initialView = useMemo(() => {
-    const hash = window.location.hash.slice(1);
-    return VIEWS.some((view) => view.id === hash) ? hash : 'mapbench';
+    const hash = window.location.hash.slice(1).split('/')[0];
+    const aliases = { benchmark: 'experiment', experiments: 'results' };
+    const normalized = aliases[hash] || hash;
+    return VALID_VIEWS.includes(normalized) ? normalized : 'mapbench';
   }, []);
   const [active, setActive] = useState(initialView);
   const [displayed, setDisplayed] = useState(initialView);
@@ -1282,8 +1794,10 @@ function App() {
   useEffect(() => {
     if (!window.location.hash) window.history.replaceState(null, '', '#mapbench');
     const onHistory = () => {
-      const next = window.location.hash.slice(1);
-      if (!VIEWS.some((view) => view.id === next) || next === activeRef.current) return;
+      const hash = window.location.hash.slice(1).split('/')[0];
+      const aliases = { benchmark: 'experiment', experiments: 'results' };
+      const next = aliases[hash] || hash;
+      if (!VALID_VIEWS.includes(next) || next === activeRef.current) return;
       activeRef.current = next;
       setActive(next);
       transitionTo(next);
@@ -1303,8 +1817,9 @@ function App() {
       <main className="view-port" ref={viewportRef}>
         {displayed === 'mapbench' && <MapBenchView onNavigate={navigate}/>}
         {displayed === 'cartograph' && <CartographView overviewTick={cartographTick}/>}
-        {displayed === 'benchmark' && <BenchmarkView/>}
-        {displayed === 'experiments' && <ExperimentsView/>}
+        {displayed === 'experiment' && <ExperimentView/>}
+        {displayed === 'results' && <ResultsView/>}
+        {displayed === 'future' && <FutureView/>}
       </main>
     </div>
   );
