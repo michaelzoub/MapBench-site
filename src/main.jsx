@@ -768,7 +768,7 @@ function CartographView({ overviewTick = 0 }) {
             )}
           >
             <p>Cartograph parses TypeScript, JavaScript, Python, Go, and Rust with Tree-sitter into a canonical representation of modules, symbols, locations, and typed relationships.</p>
-            <p>Three deterministic projections come off that IR—architecture, skeleton, and call graph—and those three are what MapBench tests. A Mermaid system map is also generated, for people rather than agents, and is never a benchmark condition.</p>
+            <p>The IR generates three outputs: architecture, skeleton, and call graph.</p>
           </ResearchCopy>
           <CartographFigure/>
         </div>
@@ -1347,7 +1347,6 @@ function ExperimentView() {
           id="questions"
           logic="pages.experiment.sections.questions"
           title="Questions"
-          statement="Four questions define the comparison and the evidence collected from every run."
           visual={<ResearchQuestions/>}
         />
 
@@ -1367,7 +1366,6 @@ function ExperimentView() {
           id="artifacts"
           logic="pages.experiment.sections.artifacts"
           title="Artifacts"
-          statement="Three views of the same project structure. Each supports a different kind of repository understanding."
           visual={<ArtifactComparison/>}
           wide
         >
@@ -1668,11 +1666,10 @@ function FutureView() {
         <div className="future-copy">
           <h1 id="future-title">Future Work</h1>
           <p>
-            Broaden the evidence, isolate which representation choices matter, and build only what
-            observed trajectories justify: more models, harnesses, repositories, and task families,
-            with larger repeated samples; which artifacts, relationships, and formats actually change
-            agent behavior; eager context versus selective retrieval, and what carrying an artifact
-            costs; and new structural views suggested by trial trajectories and failure analysis.
+            Next, we want to test more models, harnesses, repositories, and kinds of tasks, with
+            more runs of each. We want to learn which artifacts, relationships, and formats really
+            change how agents behave, and whether handing over context up front beats letting
+            agents fetch it when they need it.
           </p>
         </div>
         <figure className="future-media">
