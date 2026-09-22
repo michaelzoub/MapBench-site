@@ -3,10 +3,27 @@ import { sites } from '@openai/sites-vite-plugin';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
+/*
+ * The document keeps root-relative og:/twitter: URLs so it stays deployable
+ * anywhere, and each host binds them to its own origin: worker/index.js does it
+ * per request on Cloudflare, and this does it at build time on Vercel, which
+ * puts the production domain in the environment. Crawlers — X in particular —
+ * drop cards whose card URLs are relative.
+ */
+const absoluteCardUrls = () => ({
+  name: 'absolute-card-urls',
+  apply: 'build',
+  transformIndexHtml: (html) => {
+    const domain = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+    return domain ? html.replaceAll('content="/', `content="https://${domain}/`) : html;
+  },
+});
+
 export default defineConfig({
   plugins: [
     react(),
     sites(),
+    absoluteCardUrls(),
     cloudflare({
       viteEnvironment: { name: 'server' },
       config: {
