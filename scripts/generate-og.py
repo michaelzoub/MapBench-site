@@ -1,8 +1,7 @@
 """Regenerate public/og.png, the 1200x630 link-preview card.
 
-The card is the site's identity in one frame: the Rubric Labs lockup in the
-corner, the project name, the research question in the site's own words, and
-the measured sample. Run it after the headline numbers in src/results.js move.
+The card is the site's identity in one frame: the Rubric lockup in the
+corner, the project name, and the research question in the site's own words.
 
     python3 scripts/generate-og.py --font /path/to/Inter.ttf
 
@@ -21,15 +20,12 @@ PAD = 76
 PAPER = (255, 255, 255)
 INK = (14, 14, 14)
 MUTED = (150, 150, 150)
-DIM = (108, 108, 108)
-RULE = (44, 44, 44)
 
 TITLE = "MapBench"
 QUESTION = [
     "Do deterministic structural artifacts help agents",
     "traverse unfamiliar codebases more efficiently?",
 ]
-SAMPLE = "359 trials  ·  30 tasks  ·  4 conditions  ·  3 repetitions"
 
 
 def weighted(path, size, weight):
@@ -49,26 +45,26 @@ def tint(mask_image, color, opacity):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--font", required=True, help="Inter variable TTF")
-    parser.add_argument("--wordmark", required=True, help="Rubric white wordmark PNG")
+    parser.add_argument(
+        "--icon",
+        default=str(ROOT / "public" / "rubric-logo.png"),
+        help="Rubric icon mark PNG (transparent background)",
+    )
     parser.add_argument("--out", default=str(ROOT / "public" / "og-card.png"))
     args = parser.parse_args()
 
     card = Image.new("RGB", (WIDTH, HEIGHT), INK)
     draw = ImageDraw.Draw(card)
 
-    # Rubric Labs lockup, top-left, quiet enough to stay a credit.
-    wordmark = Image.open(args.wordmark).convert("RGBA")
-    wordmark = wordmark.crop(wordmark.getbbox())
+    # Rubric icon, top-left, quiet enough to stay a credit.
+    icon = Image.open(args.icon).convert("RGBA")
+    icon = icon.crop(icon.getbbox())
     target_height = 30
-    scale = target_height / wordmark.height
-    wordmark = wordmark.resize((round(wordmark.width * scale), target_height), Image.LANCZOS)
-    wordmark = tint(wordmark, PAPER, 0.62)
-    wordmark_top = PAD - 4
-    card.paste(wordmark, (PAD, wordmark_top), wordmark)
-
-    # "labs" rides the wordmark's own baseline so the lockup reads as one unit.
-    label = weighted(args.font, 17, 460)
-    draw.text((PAD + wordmark.width + 15, wordmark_top + target_height), "labs", font=label, fill=DIM, anchor="ls")
+    scale = target_height / icon.height
+    icon = icon.resize((round(icon.width * scale), target_height), Image.LANCZOS)
+    icon = tint(icon, PAPER, 0.62)
+    icon_top = PAD - 4
+    card.paste(icon, (PAD, icon_top), icon)
 
     # Project name.
     title_font = weighted(args.font, 108, 640)
@@ -81,11 +77,6 @@ def main():
     for line in QUESTION:
         draw.text((PAD, y), line, font=question_font, fill=MUTED)
         y += 42
-
-    # Measured sample, the same framing as the results page.
-    draw.line([(PAD, HEIGHT - PAD - 52), (WIDTH - PAD, HEIGHT - PAD - 52)], fill=RULE, width=1)
-    sample_font = weighted(args.font, 16, 460)
-    draw.text((PAD, HEIGHT - PAD - 30), SAMPLE, font=sample_font, fill=DIM)
 
     card.save(args.out, "PNG", optimize=True)
     print(f"wrote {args.out} ({WIDTH}x{HEIGHT})")
