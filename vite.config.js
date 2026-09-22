@@ -16,6 +16,10 @@ export default defineConfig({
           directory: './dist/client',
           binding: 'ASSETS',
           not_found_handling: 'single-page-application',
+          // Workers Assets answers static requests without waking the worker.
+          // The document has to go through it so worker/index.js can turn the
+          // og:/twitter: URLs absolute — X drops cards with relative ones.
+          run_worker_first: ['/', '/index.html'],
         },
       },
     }),
