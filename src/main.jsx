@@ -1690,9 +1690,8 @@ function SiteCredit() {
   enforceSectionalLogic('sharedComponents.siteCredit', 'component');
   return (
     <a className="site-credit" href="https://rubriclabs.com" target="_blank" rel="noreferrer">
-      <span>Backed by</span>
-      <img src="/rubric-logo.png" alt="" width="14" height="14" aria-hidden="true"/>
-      <strong>Rubric Labs</strong>
+      <span>With support from</span>
+      <img className="site-credit-wordmark" src="/rubric-wordmark.svg" alt="Rubric Labs"/>
     </a>
   );
 }

@@ -44,10 +44,9 @@ summary:focus-visible { outline: 1px solid var(--ink); outline-offset: 3px; }
 /* Quiet collaborator acknowledgement, pinned to the bottom-left gutter on
    wide viewports and folded back into flow when the gutter disappears. */
 .site-credit { display: inline-flex; align-items: center; gap: 7px; margin: 0 0 clamp(12px, 1.8vh, 18px) max(clamp(20px, 2.6vw, 44px), env(safe-area-inset-left)); color: var(--medium); font-size: 11px; font-weight: 450; letter-spacing: -.005em; cursor: pointer; transition: color 180ms ease; }
-.site-credit img { width: 14px; height: 14px; display: block; opacity: .5; transition: opacity 180ms ease; }
-.site-credit strong { font-weight: 550; }
+.site-credit-wordmark { height: 11px; width: auto; display: block; opacity: .6; transition: opacity 180ms ease; }
 .site-credit:hover { color: var(--body); }
-.site-credit:hover img { opacity: .85; }
+.site-credit:hover .site-credit-wordmark { opacity: 1; }
 @media (min-width: 851px) {
   .site-credit { position: fixed; z-index: 20; left: 0; bottom: 0; }
 }
