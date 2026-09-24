@@ -357,7 +357,7 @@ function PipelineFigure({ className = '' }) {
         </g>
 
         <g className="mf-held">
-          <rect x="48" y="314" width="124" height="34" rx="7"/>
+          <rect x="66" y="315" width="88" height="32" rx="6"/>
           <text x="110" y="331">Source</text>
         </g>
         <path className="mf-check" d="M169 375 L176 382 L191 368"/>
@@ -480,7 +480,7 @@ function CartographFigure() {
         Source files are parsed by Tree-sitter into one canonical intermediate representation, which
         is projected into three artifacts: architecture, skeleton, and call graph.
       </figcaption>
-      <svg viewBox="0 0 560 190" aria-hidden="true">
+      <svg viewBox="20 50 514 124" aria-hidden="true">
         {[0, 1, 2].map((index) => (
           <rect className="mf-sheet" key={index} x="34" y={78 + index * 22} width="56" height="16" rx="4"/>
         ))}
@@ -831,7 +831,7 @@ function BenchmarkFigure() {
         Baseline, architecture, skeleton, and call graph each run in their own identical, isolated
         trial container. The four results are only brought together at the comparison step.
       </figcaption>
-      <svg viewBox="0 0 390 190" aria-hidden="true">
+      <svg viewBox="-10 -3 390 178" aria-hidden="true">
         {CONDITIONS.map((condition, index) => (
           <text className="mf-condition" key={condition} x="4" y={CONDITION_Y[index]}>{condition}</text>
         ))}
@@ -1084,7 +1084,7 @@ function ConditionsFigure() {
         The task and the harness are held fixed. Only the representation in the remaining slot
         changes, cycling through none, architecture, skeleton, and call graph.
       </figcaption>
-      <svg viewBox="0 0 360 132" aria-hidden="true">
+      <svg viewBox="24 38 312 56" aria-hidden="true">
         <g className="mf-fixed"><rect x="38" y="52" width="60" height="28" rx="8"/><text x="68" y="66">Task</text></g>
         <g className="mf-fixed"><rect x="110" y="52" width="76" height="28" rx="8"/><text x="148" y="66">Harness</text></g>
         <rect className="mf-slot" x="200" y="52" width="122" height="28" rx="8"/>
@@ -1134,7 +1134,7 @@ function TrialsFigure() {
       <figcaption className="sr-only">
         One condition is repeated in three identical isolated Modal sandboxes. Each run is verified.
       </figcaption>
-      <svg viewBox="0 0 340 140" aria-hidden="true">
+      <svg viewBox="-4 0 284 140" aria-hidden="true">
         <g className="mf-origin"><rect x="10" y="56" width="82" height="28" rx="8"/><text x="51" y="70">Condition</text></g>
         {TRIAL_Y.map((y) => <line className="mf-fan" key={y} x1="96" y1="70" x2="148" y2={y}/>)}
         {TRIAL_Y.map((y) => <rect className="mf-cell" key={y} x="154" y={y - 14} width="112" height="28" rx="8"/>)}
@@ -1172,7 +1172,7 @@ function RecordFigure() {
         Every trial is kept as one record: its outcome, its complete trajectory, its usage, and its
         runtime.
       </figcaption>
-      <svg viewBox="0 0 340 152" aria-hidden="true">
+      <svg viewBox="0 0 292 152" aria-hidden="true">
         <g className="mf-record-origin"><rect x="14" y="62" width="72" height="28" rx="8"/><text x="50" y="76">Trial</text></g>
         {RECORD_FIELDS.map((field, index) => (
           <React.Fragment key={field}>
@@ -1276,7 +1276,7 @@ function ModelsHarnessFigure() {
         GPT-5.6 Luna drives the same fixed Pi harness in every run: the agent takes an action in the
         environment and receives an observation back.
       </figcaption>
-      <svg viewBox="0 0 430 210" aria-hidden="true">
+      <svg viewBox="-12 1 440 200" aria-hidden="true">
         <rect className="mf-marker" x="2" y={MODEL_Y[0] - 11} width="126" height="22" rx="6"/>
         {EXPERIMENT_MODELS.map((model, index) => (
           <text className="mf-model" key={model.short} x="12" y={MODEL_Y[index]}>{model.short}</text>

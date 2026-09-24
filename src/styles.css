@@ -120,7 +120,7 @@ summary:focus-visible { outline: 1px solid var(--ink); outline-offset: 3px; }
 .mf-pipeline svg { max-width: 340px; }
 @media (max-width: 980px) { .mf-pipeline svg { max-width: 300px; } }
 .mf-pipeline .mf-artifact-label { font-size: 8px; }
-.mf-pipeline .mf-held text { font-size: 10.5px; }
+.mf-pipeline .mf-held text { font-size: 8px; font-weight: 500; fill: #4f4f4f; }
 /* Beside a photograph rather than a paragraph, the hero composition needs a
    shade more weight to hold its own: every mark here reads a step darker
    than the same mark does in the site's other figures. */
@@ -132,9 +132,10 @@ summary:focus-visible { outline: 1px solid var(--ink); outline-offset: 3px; }
 .mf-pipeline text { fill: #6c6c6c; }
 .mf-cartograph svg { max-width: 560px; }
 .mf-trials svg { max-width: 390px; }
-.mf-conditions svg { max-width: 440px; }
-.mf-trial-cells svg { max-width: 420px; }
-.mf-record svg { max-width: 420px; }
+/* Diagram viewBoxes keep roughly 14 internal units around their visible
+   geometry; equal outer widths now align visible content instead of empty
+   canvas left over from earlier frames. */
+.mf-conditions svg, .mf-trial-cells svg, .mf-record svg { max-width: 420px; }
 .mf-harness svg { max-width: 460px; }
 
 .mf-figure .mf-action-head, .mf-figure .mf-observation-head { fill: none; stroke: var(--rule); stroke-width: 1; stroke-linecap: round; stroke-linejoin: round; }
