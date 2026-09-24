@@ -309,14 +309,11 @@ function PipelineFigure({ className = '' }) {
     tl.to([...dropped, ...stems, ...droppedLabels], { opacity: 0, duration: DUR.base }, 'handoff+=0.9')
       .to(source, { opacity: 0, duration: DUR.slow }, '<')
       .to([...nodes, ...edges], { opacity: 0.26, duration: DUR.slow }, '<')
-      // The artifact travels to the empty half of the workspace and takes the
-      // proportions the workspace uses. Tweened rather than Flipped so the
-      // finished composition is reachable by seeking, which is what the
-      // reduced-motion rendering does.
-      .to(carried, { attr: { x: 188, y: 314, width: 124, height: 34, rx: 7 }, duration: DUR.slow, ease: EASE.inOut }, '-=0.16')
-      // Its name travels with it and settles at the weight the workspace uses,
-      // so the agent is holding a named artifact rather than a blank chip.
-      .to(carriedLabel, { attr: { x: 250, y: 331 }, fontSize: 10.5, fill: '#888888', duration: DUR.slow, ease: EASE.inOut }, '<');
+      // The artifact travels intact. Keeping its original dimensions avoids a
+      // final-frame scale jump (and the small text clipping that came with it)
+      // while still making the handoff unambiguous.
+      .to(carried, { attr: { x: 206, y: 315, width: 88, height: 32, rx: 6 }, duration: DUR.slow, ease: EASE.inOut }, '-=0.16')
+      .to(carriedLabel, { attr: { x: 250, y: 331 }, fill: '#777777', duration: DUR.slow, ease: EASE.inOut }, '<');
 
     // 5 — Verifier grades the work. The check is the only thing that resolves.
     tl.addLabel('graded', '+=0.2')
@@ -333,6 +330,10 @@ function PipelineFigure({ className = '' }) {
         the full source, and a verifier grades the resulting work.
       </figcaption>
       <svg viewBox="0 0 360 456" aria-hidden="true">
+        {/* The workspace is a background field. It must be painted before the
+            map stage so the carried artifact remains visible as it settles. */}
+        <rect className="mf-workspace" x="30" y="288" width="300" height="114" rx="14"/>
+
         <g className="mf-map-stage">
           <rect className="mf-source" x="138" y="46" width="84" height="96" rx="10"/>
           {[0, 1, 2].map((index) => (
@@ -355,7 +356,6 @@ function PipelineFigure({ className = '' }) {
           ))}
         </g>
 
-        <rect className="mf-workspace" x="30" y="288" width="300" height="114" rx="14"/>
         <g className="mf-held">
           <rect x="48" y="314" width="124" height="34" rx="7"/>
           <text x="110" y="331">Source</text>
@@ -1047,25 +1047,23 @@ const RESEARCH_QUESTIONS = [
 
 const TREATMENTS = ['None', 'Architecture', 'Skeleton', 'Call graph'];
 
-// 4 — Conditions. The frame, the task and the harness are drawn once and are
-// then never touched again; the only tween in the figure is inside the slot.
+// 4 — Conditions. The task and the harness are drawn once and are then never
+// touched again; the only tween in the figure is inside the slot.
 function ConditionsFigure() {
   enforceSectionalLogic('pages.experiment.sections.setup.subsections.environment.components.conditionCycle', 'component');
   const ref = useRef(null);
 
   const build = useCallback((root, tl) => {
-    const frame = q(root, '.mf-frame');
     const fixed = qa(root, '.mf-fixed');
     const slot = q(root, '.mf-slot');
     const filled = q(root, '.mf-fixture');
     const treatment = q(root, '.mf-treatment');
 
-    gsap.set([frame, ...fixed, slot], { opacity: 0 });
+    gsap.set([...fixed, slot], { opacity: 0 });
     gsap.set(filled, { opacity: 0 });
     gsap.set(treatment, { opacity: 0, textContent: TREATMENTS[0] });
 
-    tl.to(frame, { opacity: 1, duration: DUR.base })
-      .to(fixed, { opacity: 1, duration: DUR.base, stagger: 0.08 }, '-=0.16')
+    tl.to(fixed, { opacity: 1, duration: DUR.base, stagger: 0.08 })
       .to(slot, { opacity: 1, duration: DUR.base }, '+=0.15')
       .to(treatment, { opacity: 1, duration: DUR.quick }, '-=0.14');
 
@@ -1087,7 +1085,6 @@ function ConditionsFigure() {
         changes, cycling through none, architecture, skeleton, and call graph.
       </figcaption>
       <svg viewBox="0 0 360 132" aria-hidden="true">
-        <rect className="mf-frame" x="14" y="14" width="332" height="104" rx="14"/>
         <g className="mf-fixed"><rect x="38" y="52" width="60" height="28" rx="8"/><text x="68" y="66">Task</text></g>
         <g className="mf-fixed"><rect x="110" y="52" width="76" height="28" rx="8"/><text x="148" y="66">Harness</text></g>
         <rect className="mf-slot" x="200" y="52" width="122" height="28" rx="8"/>
@@ -1122,11 +1119,11 @@ function TrialsFigure() {
       .to(modalMarks, { opacity: 1, duration: DUR.quick, stagger: 0.07 }, '-=0.24');
 
     // Each cell runs, then verifies, then hands over to the next. A cell that
-    // is running is simply a cell with a darker edge.
+    // is running deepens slightly without acquiring extra chrome.
     cells.forEach((cell, index) => {
-      tl.to(cell, { stroke: '#151515', duration: DUR.quick }, index === 0 ? '+=0.35' : '+=0.1')
+      tl.to(cell, { fill: '#e8e8e8', duration: DUR.quick }, index === 0 ? '+=0.35' : '+=0.1')
         .to(checks[index], { drawSVG: '100%', duration: DUR.base, ease: EASE.draw }, '+=0.3')
-        .to(cell, { stroke: '#dedbd6', duration: DUR.base });
+        .to(cell, { fill: '#f5f5f5', duration: DUR.base });
     });
   }, []);
 

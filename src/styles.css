@@ -100,8 +100,9 @@ summary:focus-visible { outline: 1px solid var(--ink); outline-offset: 3px; }
 /* Objects are scaled by the viewBox; their edges must not thicken with them. */
 .mf-figure rect, .mf-figure line, .mf-figure path, .mf-figure polyline { vector-effect: non-scaling-stroke; }
 .mf-figure text { font-family: inherit; font-size: 9.5px; font-weight: 450; letter-spacing: -.01em; fill: var(--muted); text-anchor: middle; dominant-baseline: middle; }
-/* A small object is a face in the paper ramp with a hairline edge. */
-.mf-figure .mf-source, .mf-figure .mf-held rect { fill: var(--soft); stroke: var(--line); stroke-width: 1; }
+/* Filled faces carry their own boundary; outlines are reserved for empty
+   containers and connectors that need to explain structure. */
+.mf-figure .mf-source, .mf-figure .mf-held rect { fill: var(--soft); stroke: none; }
 /* An artifact is a solid object, not a container: it reads as present the
    moment it lands in a slot that is otherwise only an outline. */
 .mf-figure .mf-artifact { fill: var(--light); stroke: none; }
@@ -111,8 +112,8 @@ summary:focus-visible { outline: 1px solid var(--ink); outline-offset: 3px; }
 /* The one node every edge meets: the map has a centre, so the three artifacts
    read as three views of a single structure. */
 .mf-figure .mf-node.is-core { fill: var(--ink); }
-.mf-figure .mf-workspace { fill: none; stroke: var(--line); stroke-width: 1; }
-.mf-figure .mf-slot { fill: none; stroke: var(--rule); stroke-width: 1; stroke-dasharray: 3 3; }
+.mf-figure .mf-workspace { fill: #fafafa; stroke: none; }
+.mf-figure .mf-slot { fill: var(--soft); stroke: none; }
 .mf-figure .mf-check { fill: none; stroke: var(--ink); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 /* The only word on screen at a time. */
 .mf-figure .mf-caption-line { font-size: 12.5px; font-weight: 500; letter-spacing: -.015em; fill: var(--ink); }
@@ -126,8 +127,8 @@ summary:focus-visible { outline: 1px solid var(--ink); outline-offset: 3px; }
 .mf-pipeline .mf-node, .mf-pipeline .mf-artifact { fill: #d2d2d2; }
 .mf-pipeline .mf-source-line, .mf-pipeline .mf-edge, .mf-pipeline .mf-stem { stroke: #a0a0a0; }
 .mf-pipeline .mf-artifact-label { fill: #4f4f4f; }
-.mf-pipeline .mf-source, .mf-pipeline .mf-held rect { stroke: #c2c2c2; }
-.mf-pipeline .mf-workspace { stroke: #bcbcbc; }
+.mf-pipeline .mf-source, .mf-pipeline .mf-held rect { fill: #eeeeee; }
+.mf-pipeline .mf-workspace { fill: #f7f7f7; }
 .mf-pipeline text { fill: #6c6c6c; }
 .mf-cartograph svg { max-width: 560px; }
 .mf-trials svg { max-width: 390px; }
@@ -137,17 +138,18 @@ summary:focus-visible { outline: 1px solid var(--ink); outline-offset: 3px; }
 .mf-harness svg { max-width: 460px; }
 
 .mf-figure .mf-action-head, .mf-figure .mf-observation-head { fill: none; stroke: var(--rule); stroke-width: 1; stroke-linecap: round; stroke-linejoin: round; }
-.mf-figure .mf-agent rect, .mf-figure .mf-environment rect { fill: none; stroke: var(--line); stroke-width: 1; }
+.mf-figure .mf-agent rect, .mf-figure .mf-environment rect { fill: var(--soft); stroke: none; }
 .mf-figure .mf-marker { fill: var(--soft); stroke: none; }
 .mf-figure .mf-model { text-anchor: start; fill: var(--ink); }
 .mf-figure .mf-action, .mf-figure .mf-observation { fill: none; stroke: var(--rule); stroke-width: 1; }
-/* A frame or an empty slot is an outline; a filled object is a face. */
+/* Frames are reserved for the few empty boundaries whose enclosure carries
+   meaning; filled objects define themselves without an additional edge. */
 .mf-figure .mf-frame { fill: none; stroke: var(--line); stroke-width: 1; }
-.mf-figure .mf-fixed rect, .mf-figure .mf-origin rect, .mf-figure .mf-record-origin rect { fill: var(--soft); stroke: var(--line); stroke-width: 1; }
+.mf-figure .mf-fixed rect, .mf-figure .mf-origin rect, .mf-figure .mf-record-origin rect { fill: var(--soft); stroke: none; }
 .mf-figure .mf-fixture { fill: var(--light); stroke: none; }
 .mf-figure .mf-fan { fill: none; stroke: var(--rule); stroke-width: 1; }
 .mf-figure .mf-record-edge { fill: none; stroke: var(--rule); stroke-width: 1; }
-.mf-figure .mf-record-node rect { fill: var(--soft); stroke: var(--line); stroke-width: 1; }
+.mf-figure .mf-record-node rect { fill: var(--soft); stroke: none; }
 .mf-figure .mf-modal-mark { overflow: visible; }
 
 /* The four things the setup establishes, read in order: one step under the
@@ -161,14 +163,14 @@ summary:focus-visible { outline: 1px solid var(--ink); outline-offset: 3px; }
   .setup-step { grid-template-columns: minmax(0, 1fr); gap: 24px; }
   .setup-steps { gap: 54px; }
 }
-/* A trial container is an empty, identical box until something enters it. */
-.mf-figure .mf-cell, .mf-figure .mf-compare rect { fill: none; stroke: var(--line); stroke-width: 1; }
+/* A trial container is a quiet, identical field until something enters it. */
+.mf-figure .mf-cell, .mf-figure .mf-compare rect { fill: var(--soft); stroke: none; }
 .mf-figure .mf-gear circle, .mf-figure .mf-gear line { fill: none; stroke: var(--medium); stroke-width: 1.25; stroke-linecap: round; }
 .mf-figure .mf-feed, .mf-figure .mf-merge { fill: none; stroke: var(--rule); stroke-width: 1; }
 .mf-figure .mf-condition { text-anchor: start; }
-/* The parser is a container the files go into, so it reads as an outline. */
-.mf-figure .mf-parser { fill: none; stroke: var(--line); stroke-width: 1; }
-.mf-figure .mf-sheet { fill: var(--soft); stroke: var(--line); stroke-width: 1; }
+/* The parser is a container the files go into, distinguished by a soft field. */
+.mf-figure .mf-parser { fill: var(--soft); stroke: none; }
+.mf-figure .mf-sheet { fill: var(--soft); stroke: none; }
 .mf-figure .mf-output text { text-anchor: start; }
 
 /* --- Editorial landing ---------------------------------------------------
